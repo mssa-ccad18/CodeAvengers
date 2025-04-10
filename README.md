@@ -37,7 +37,7 @@ To build clean, efficient, and innovative code that saves the day (or at least b
 
 ### Isaac
 - **Bio:**  
-  Hey, I’m Isaac — an Army veteran who’s passionate about programming, coding, and building cool ideas with great people. Outside of tech, you’ll usually find me on the golf course or playing basketball. Always open to teaming up on fun projects — if you’ve got an idea, let’s make it happen!
+
 
 ---
 
