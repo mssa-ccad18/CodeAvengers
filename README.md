@@ -14,7 +14,7 @@
 We are **CodeAvengers**, a team of fearless developers assembling to tackle every coding challenge thrown our way. Armed with creativity, skill, and a dash of caffeine, we turn ideas into powerful digital realities. Like the legendary heroes we're inspired by, each team member brings unique strengths to the table — and together, we're unstoppable.
 
 **Our Motto:**  
-> _"When bugs attack, we assemble."_
+> _"Avengers, git commit!"_
 
 **Our Mission:**  
 To build clean, efficient, and innovative code that saves the day (or at least beats the deadline).
