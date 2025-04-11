@@ -1,70 +1,48 @@
-# 🛡️ CodeAvengers
-***Avengers, git commit!***
+<head>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>🛡️ CodeAvengers</h1>
+    <div class="center">
+      <img src="Assets/resized_logo_under_1MB.png" alt="Team Logo" class="logo">
+    </div>
 
-<div align="center">
-  <img src="https://github.com/mssa-ccad18/CodeAvengers/blob/main/Assets/resized_logo_under_1MB.png" alt="Team Logo" width="150" height="150">
-  <img src="https://github.com/mssa-ccad18/CodeAvengers/blob/main/Assets/isaac-Spiderman-Superman-Coder.png" alt="Isaac Profile Pic" width="150" height="150">
-</div>
+    <h2>🚀 Meet the CodeAvengers</h2>
+    <p class="motto">"Avengers, git commit!"</p>
 
----
+    <div class="divider"></div>
 
-# 🚀 Meet the CodeAvengers
+    <h3>Team Values</h3>
+    <ul class="values">
+      <li>🛡️ Collaboration</li>
+      <li>⚡ Innovation</li>
+      <li>🔥 Resilience</li>
+      <li>🎉 Fun</li>
+    </ul>
 
-**About Us:**  
-We are **CodeAvengers**, a team of fearless developers assembling to tackle every coding challenge thrown our way. Armed with creativity, skill, and a dash of caffeine, we turn ideas into powerful digital realities. Like the legendary heroes we're inspired by, each team member brings unique strengths to the table — and together, we're unstoppable.
+    <div class="divider"></div>
 
-**Our Motto:**  
-> _"Avengers, git commit!"_
+    <h2>🧑‍💻 Team Members</h2>
 
-**Our Mission:**  
-To build clean, efficient, and innovative code that saves the day (or at least beats the deadline).
+    <div class="member-card">
+      <div class="member-name">Andrew</div>
+      <p>(Andrew's bio goes here.)</p>
+    </div>
 
-**Team Values:**
-- 🛡️ **Collaboration:** No hero works alone — teamwork is our superpower.
-- ⚡ **Innovation:** We don’t just solve problems, we smash them.
-- 🔥 **Resilience:** Crashes happen. We debug, rebuild, and come back stronger.
-- 🎉 **Fun:** Saving the (digital) world is serious business — but we never forget to have fun doing it.
+    <!-- Repeat for other members -->
 
----
+    <div class="divider"></div>
 
-# 🧑‍💻 Team Members
+    <h2>🌟 Gallery</h2>
+    <div class="center gallery">
+      <img src="Assets/resized_logo_under_1MB.png" alt="Team Logo">
+      <img src="Assets/isaac-Spiderman-Superman-Coder.png" alt="Isaac Profile Pic">
+    </div>
 
-### Andrew
-- **Bio:**  
-  (Andrew's bio goes here.)
+    <div class="footer">
+      Built with ❤️ by CodeAvengers
+    </div>
+  </div>
+</body>
 
----
-
-### Isaac
-- **Bio:**  
-
-
----
-
-### Christopher
-- **Bio:**  
-  (Christopher's bio goes here.)
-
----
-
-### David
-- **Bio:**  
-  (David's bio goes here.)
-
----
-
-### Nicholas
-- **Bio:**  
-  (Nicholas's bio goes here.)
-
----
-
-
----
-
-# 🌟 Gallery
-
-<div align="center">
-  <img src="https://github.com/mssa-ccad18/CodeAvengers/blob/main/Assets/resized_logo_under_1MB.png" alt="Team Logo" width="150" height="150">
-  <img src="https://github.com/mssa-ccad18/CodeAvengers/blob/main/Assets/isaac-Spiderman-Superman-Coder.png" alt="Isaac Profile Pic" width="150" height="150">
-</div>
