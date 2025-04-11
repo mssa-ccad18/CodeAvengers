@@ -30,33 +30,21 @@
 
 ## 👥 Team Members
 
-### Andrew
-![Profile Pic](https://github.com/mssa-ccad18/CodeAvengers/blob/main/Assets/placeholder.png)
-> *(Andrew's bio goes here.)*
+| <img src="https://github.com/mssa-ccad18/CodeAvengers/blob/main/Assets/resized_logo_under_1MB.png" width="180"> | **Andrew** - Bio:<br><br>Andrew is a developer with a passion for creative coding, team collaboration, and snack breaks. Ready to assemble at a moment's notice! |
+|---|---|
 
----
+| <img src="https://github.com/mssa-ccad18/CodeAvengers/blob/main/Assets/isaac-Spiderman-Superman-Coder.png" width="150"> | **Isaac** - Bio:<br><br>Master of web-slinging code and debugging villains in style. Isaac brings the super-powered energy to every project. |
+|---|---|
 
-### Isaac
-![Profile Pic](https://github.com/mssa-ccad18/CodeAvengers/blob/main/Assets/isaac-Spiderman-Superman-Coder.png)
-> *(Isaac's bio goes here.)*
+| <img src="https://github.com/mssa-ccad18/CodeAvengers/blob/main/Assets/placeholder.png" width="150"> | **Christopher** - Bio:<br><br>(Christopher's bio goes here.) |
+|---|---|
 
----
+| <img src="https://github.com/mssa-ccad18/CodeAvengers/blob/main/Assets/placeholder.png" width="150"> | **David** - Bio:<br><br>(David's bio goes here.) |
+|---|---|
 
-### Christopher
-![Profile Pic](https://github.com/mssa-ccad18/CodeAvengers/blob/main/Assets/placeholder.png)
-> *(Christopher's bio goes here.)*
+| <img src="https://github.com/mssa-ccad18/CodeAvengers/blob/main/Assets/placeholder.png" width="150"> | **Nicholas** - Bio:<br><br>(Nicholas's bio goes here.) |
+|---|---|
 
----
-
-### David
-![Profile Pic](https://github.com/mssa-ccad18/CodeAvengers/blob/main/Assets/placeholder.png)
-> *(David's bio goes here.)*
-
----
-
-### Nicholas
-![Profile Pic](https://github.com/mssa-ccad18/CodeAvengers/blob/main/Assets/placeholder.png)
-> *(Nicholas's bio goes here.)*
 
 ---
 
