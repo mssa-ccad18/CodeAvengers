@@ -4,6 +4,7 @@
 <p align="center">
   <img src="https://github.com/mssa-ccad18/CodeAvengers/blob/main/Assets/resized_logo_under_1MB.png" width="150" />
   <img src="https://github.com/mssa-ccad18/CodeAvengers/blob/main/Assets/isaac-Spiderman-Superman-Coder.png" width="150" />
+  <img src="https://github.com/mssa-ccad18/CodeAvengers/blob/main/David_obito.png?raw=true" width="150" />
 </p>
 
 ---
@@ -39,7 +40,7 @@
 | <img src="https://github.com/mssa-ccad18/CodeAvengers/blob/main/Assets/placeholder.png" width="150"> | **Christopher** - Bio:<br><br>(Christopher's bio goes here.) |
 |---|---|
 
-| <img src="https://github.com/mssa-ccad18/CodeAvengers/blob/main/Assets/placeholder.png" width="150"> | **David** - Bio:<br><br>(David's bio goes here.) |
+| <img src="https://github.com/mssa-ccad18/CodeAvengers/blob/main/David_obito.png?raw=true" width="150"> | **David** - Bio:<br><br>David Awodi is a computer science student passionate about software development, cloud tech, and transitioning into a tech career. |
 |---|---|
 
 | <img src="https://github.com/mssa-ccad18/CodeAvengers/blob/main/Assets/placeholder.png" width="150"> | **Nicholas** - Bio:<br><br>(Nicholas's bio goes here.) |
