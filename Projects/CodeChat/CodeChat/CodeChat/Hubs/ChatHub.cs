@@ -1,9 +1,11 @@
+
 ﻿using CodeChat.Data;
 using Microsoft.AspNetCore.SignalR;
 using System.Threading.Tasks;
 using CodeChat.Client.Components.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
+
 
 namespace CodeChat.Hubs;
 
@@ -23,6 +25,7 @@ public class ChatHub : Hub
 
     public async Task CreateUser(string username, string publicKey)
     {
+
         try
         {
             
@@ -51,6 +54,7 @@ public class ChatHub : Hub
         {
             throw new HubException($"Error creating user: {ex.Message}");
         }
+
     }
 }
 

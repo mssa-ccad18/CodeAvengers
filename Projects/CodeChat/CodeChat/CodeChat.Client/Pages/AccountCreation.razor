@@ -1,11 +1,14 @@
 ﻿@page "/"
 @rendermode InteractiveWebAssembly
+
 @layout Layout.LoginLayout
 @using Microsoft.AspNetCore.SignalR.Client
 @using System.Diagnostics
+
 @using CodeChat.Client.Components.Models
 @inject NavigationManager Navigation
 @implements IAsyncDisposable
+
 
 <h3>Create Account</h3>
 
@@ -74,4 +77,5 @@
             await connection.DisposeAsync();
         }
     }
+
 }
