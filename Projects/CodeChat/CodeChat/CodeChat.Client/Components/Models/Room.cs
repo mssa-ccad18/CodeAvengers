@@ -2,10 +2,10 @@
 
 namespace CodeChat.Client.Components.Models
 {
-    public class Room : 
+    public class Room
     {
         public int RoomID { get; set; }                  //how do we want these to be generated?
-        private string RoomKey { get; set; }            //how are these generated?
+        private string RoomKey { get; set; }
         private User RoomOwner { get; set; }
         public List<string> UserList { get; set; } = new List<string>();
 
@@ -17,13 +17,11 @@ namespace CodeChat.Client.Components.Models
             UserList = userList;
         }
 
-        public void AddUser(User requestingUser, User userToAdd)         //how do you make this method exclusive to the RoomOwner
+        public void AddUser(User requestingUser, User userToAdd)
         {
             if (this.RoomOwner != requestingUser)
-            {
-                //$"Only {this.RoomOwner.UserName} can add users to the room.");
-                return;
-
+            { 
+                throw new UnauthorizedAccessException($"Only {this.RoomOwner.Username} can add users to the room.");
             }
             if (!this.UserList.Contains(userToAdd.Username))
             {
