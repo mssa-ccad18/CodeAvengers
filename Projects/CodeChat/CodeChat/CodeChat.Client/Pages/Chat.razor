@@ -47,27 +47,15 @@
                 <div class="message-text">What's up!</div>
             </div>
         </div>
-
-        <div class="input-area">
-            <div class="message-input-toolbar">
-                <div class="formatting-toolbar">
-                    <button type="button" class="format-button">B</button>
-                    <button type="button" class="format-button">I</button>
-                    <button type="button" class="format-button">U</button>
-                </div>
-
-                <textarea class="message-input"
-                          placeholder="Type a message..."
-                          @bind="messageInput"
-                          rows="1">
-                </textarea>
-
-                <button class="send-button" @onclick="DoNothing">
-                    Send
-                </button>
-            </div>
-        </div>
     </div>
+</div>
+
+<!-- GPT-style Bottom Chat Bar -->
+<div class="chat-input-bar">
+    <textarea class="chat-input" placeholder="Type a message here..." @bind="messageInput"></textarea>
+    <button class="chat-send-button" @onclick="DoNothing">
+        Send
+    </button>
 </div>
 
 @code {
@@ -94,7 +82,7 @@
 
     private void DoNothing()
     {
-        // Placeholder for future Send functionality.
+        // No logic yet for send.
     }
 
     public bool IsConnected =>
