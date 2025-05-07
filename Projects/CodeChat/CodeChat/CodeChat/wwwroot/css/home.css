@@ -1,18 +1,22 @@
-:root {
-    /* Color palette - Dark theme inspired by Meta but darker */
-    --primary-bg: #121212;
-    --secondary-bg: #1e1e1e;
-    --accent-color: #3a7fd5;
-    --accent-hover: #2d6bbd;
-    --text-color: #ffffff;
-    --text-secondary: #b0b0b0;
-    --input-bg: #2d2d2d;
-    --border-color: #424242;
-    --button-green: #4CAF50;
-    --button-green-hover: #3d8b40;
-    --card-bg: #242424;
+﻿:root {
+    /* Avengers Infinity War Color Palette */
+    --temptress: #361A29; /* Dark background */
+    --vermilion: #D93D27; /* Iron Man red */
+    --yellow-orange: #EFA53A; /* Similar to Infinity Stone */
+    --water: #CCF4FE; /* Light text color */
+    --slate-blue: #626EDA; /* Captain America blue */
+    --purpureus: #924F9E; /* Thanos purple */
+    /* Additional UI colors */
+    --dark-bg: #1E1220; /* Darker version of Temptress */
+    --card-bg: #482436; /* Lighter version of Temptress */
+    --border-color: #924F9E; /* Purpureus for borders */
+    --hover-red: #F04E35; /* Brighter vermilion for hover */
+    --hover-blue: #7A84E8; /* Brighter slate blue for hover */
+    --text-primary: #CCF4FE; /* Water color for primary text */
+    --text-secondary: #9ADBEB; /* Darker version of Water for secondary text */
     /* Typography */
-    --main-font: 'Segoe UI', system-ui, sans-serif;
+    --main-font: 'Montserrat', 'Segoe UI', system-ui, sans-serif;
+    --header-font: 'Russo One', 'Impact', sans-serif;
     /* Spacing */
     --spacing-xs: 4px;
     --spacing-sm: 8px;
@@ -20,9 +24,13 @@
     --spacing-lg: 24px;
     --spacing-xl: 32px;
     /* Shadows */
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
-    --shadow-md: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23);
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.4);
+    --glow-purple: 0 0 15px rgba(146, 79, 158, 0.5);
+    --glow-blue: 0 0 15px rgba(98, 110, 218, 0.5);
 }
+
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Russo+One&display=swap');
 
 * {
     box-sizing: border-box;
@@ -32,18 +40,35 @@
 
 body {
     font-family: var(--main-font);
-    background-color: var(--primary-bg);
-    color: var(--text-color);
+    background-color: var(--dark-bg);
+    background-image: radial-gradient(circle at 10% 20%, rgba(146, 79, 158, 0.1) 0%, transparent 50%), radial-gradient(circle at 90% 80%, rgba(98, 110, 218, 0.1) 0%, transparent 50%);
+    color: var(--text-primary);
     line-height: 1.5;
+    position: relative;
 }
 
+    /* Cosmic design element */
+    body::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--vermilion), var(--yellow-orange), var(--slate-blue), var(--purpureus));
+        z-index: 1000;
+    }
+
 a {
-    color: var(--accent-color);
+    color: var(--slate-blue);
     text-decoration: none;
+    transition: color 0.2s, text-shadow 0.2s;
 }
 
     a:hover {
-        text-decoration: underline;
+        color: var(--hover-blue);
+        text-shadow: var(--glow-blue);
+        text-decoration: none;
     }
 
 .landing-container {
@@ -71,32 +96,55 @@ a {
 }
 
 .logo {
-    font-size: 3rem;
-    font-weight: bold;
-    color: var(--accent-color);
+    font-family: var(--header-font);
+    font-size: 3.5rem;
+    color: var(--vermilion);
     margin-bottom: var(--spacing-lg);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-shadow: 0 0 10px rgba(217, 61, 39, 0.3);
+    position: relative;
+    display: inline-block;
 }
 
+    /* A-like design for the first letter */
+    .logo::before {
+        content: '';
+        position: absolute;
+        width: 15px;
+        height: 2px;
+        background-color: var(--vermilion);
+        top: 50%;
+        left: 40%;
+        transform: translateX(-50%);
+    }
+
 .landing-info h1 {
+    font-family: var(--header-font);
     font-size: 2.5rem;
     margin-bottom: var(--spacing-md);
     font-weight: 600;
+    color: var(--water);
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 .landing-info p {
-    font-size: 1.5rem;
+    font-size: 1.3rem;
     color: var(--text-secondary);
     margin-bottom: var(--spacing-lg);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 /* Right side with login form */
 .login-container {
     background-color: var(--card-bg);
-    border-radius: 8px;
-    box-shadow: var(--shadow-md);
+    border-radius: 12px;
+    box-shadow: var(--shadow-md), var(--glow-purple);
     padding: var(--spacing-lg);
     width: 100%;
     max-width: 400px;
+    border: 1px solid rgba(146, 79, 158, 0.3);
+    backdrop-filter: blur(5px);
 }
 
 .login-form {
@@ -107,27 +155,43 @@ a {
 
 .login-input {
     padding: var(--spacing-md);
-    border-radius: 6px;
-    border: 1px solid var(--border-color);
-    background-color: var(--input-bg);
-    color: var(--text-color);
+    border-radius: 8px;
+    border: 1px solid rgba(146, 79, 158, 0.5);
+    background-color: rgba(54, 26, 41, 0.7);
+    color: var(--text-primary);
     font-size: 1rem;
+    transition: border-color 0.3s, box-shadow 0.3s;
 }
+
+    .login-input:focus {
+        border-color: var(--purpureus);
+        box-shadow: 0 0 0 2px rgba(146, 79, 158, 0.25);
+        outline: none;
+    }
 
 .login-button {
     padding: var(--spacing-md);
     border: none;
-    border-radius: 6px;
-    background-color: var(--accent-color);
+    border-radius: 8px;
+    background-color: var(--slate-blue);
     color: white;
     font-weight: bold;
     font-size: 1.2rem;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: all 0.3s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: var(--shadow-sm);
 }
 
     .login-button:hover {
-        background-color: var(--accent-hover);
+        background-color: var(--hover-blue);
+        box-shadow: var(--glow-blue), var(--shadow-md);
+        transform: translateY(-2px);
+    }
+
+    .login-button:active {
+        transform: translateY(0);
     }
 
 .login-divider {
@@ -141,7 +205,7 @@ a {
     .login-divider::after {
         content: '';
         flex: 1;
-        border-bottom: 1px solid var(--border-color);
+        border-bottom: 1px solid rgba(146, 79, 158, 0.5);
     }
 
     .login-divider span {
@@ -152,17 +216,26 @@ a {
 .create-account-button {
     padding: var(--spacing-md);
     border: none;
-    border-radius: 6px;
-    background-color: var(--button-green);
+    border-radius: 8px;
+    background-color: var(--vermilion);
     color: white;
     font-weight: bold;
     font-size: 1rem;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: all 0.3s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: var(--shadow-sm);
 }
 
     .create-account-button:hover {
-        background-color: var(--button-green-hover);
+        background-color: var(--hover-red);
+        box-shadow: 0 0 15px rgba(217, 61, 39, 0.5), var(--shadow-md);
+        transform: translateY(-2px);
+    }
+
+    .create-account-button:active {
+        transform: translateY(0);
     }
 
 .forgot-password {
@@ -170,15 +243,169 @@ a {
     margin-top: var(--spacing-md);
 }
 
+    .forgot-password a {
+        color: var(--yellow-orange);
+        transition: color 0.2s, text-shadow 0.2s;
+    }
+
+        .forgot-password a:hover {
+            color: var(--yellow-orange);
+            text-shadow: 0 0 8px rgba(239, 165, 58, 0.5);
+        }
+
+/* Team Section - NEW */
+.team-section {
+    background-color: var(--card-bg);
+    background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23924f9e' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E"), linear-gradient(135deg, rgba(54, 26, 41, 0.95) 0%, rgba(72, 36, 54, 0.95) 100%);
+    padding: var(--spacing-xl) 10%;
+    position: relative;
+    overflow: hidden;
+    border-top: 1px solid rgba(146, 79, 158, 0.3);
+    border-bottom: 1px solid rgba(146, 79, 158, 0.3);
+}
+
+    .team-section::before {
+        content: '';
+        position: absolute;
+        right: -5%;
+        top: -20%;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(98, 110, 218, 0.15) 0%, transparent 70%);
+        border-radius: 50%;
+    }
+
+    .team-section::after {
+        content: '';
+        position: absolute;
+        left: -5%;
+        bottom: -20%;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(217, 61, 39, 0.1) 0%, transparent 70%);
+        border-radius: 50%;
+    }
+
+.team-content {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.team-quote {
+    font-family: var(--header-font);
+    font-size: 2rem;
+    color: var(--vermilion);
+    text-align: center;
+    margin-bottom: var(--spacing-md);
+    position: relative;
+    display: inline-block;
+    text-shadow: 0 0 10px rgba(217, 61, 39, 0.3);
+    width: 100%;
+}
+
+    .team-quote::before,
+    .team-quote::after {
+        content: '"';
+        color: var(--vermilion);
+        opacity: 0.5;
+    }
+
+.team-title {
+    font-family: var(--header-font);
+    font-size: 2.2rem;
+    color: var(--water);
+    text-align: center;
+    margin-bottom: var(--spacing-lg);
+    position: relative;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+    .team-title::after {
+        content: '';
+        width: 80px;
+        height: 4px;
+        background: linear-gradient(90deg, var(--vermilion), var(--purpureus));
+        position: absolute;
+        bottom: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+        border-radius: 2px;
+    }
+
+.team-description {
+    background-color: rgba(54, 26, 41, 0.7);
+    border-radius: 10px;
+    padding: var(--spacing-lg);
+    box-shadow: var(--shadow-md);
+    border: 1px solid rgba(146, 79, 158, 0.2);
+}
+
+    .team-description p {
+        color: var(--text-secondary);
+        font-size: 1.1rem;
+        margin-bottom: var(--spacing-lg);
+        line-height: 1.6;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+    }
+
+    .team-description strong {
+        color: var(--vermilion);
+        font-weight: 600;
+    }
+
+.mission {
+    display: flex;
+    align-items: flex-start;
+    background-color: rgba(146, 79, 158, 0.1);
+    border-radius: 8px;
+    padding: var(--spacing-md);
+    border-left: 3px solid var(--yellow-orange);
+}
+
+.mission-icon {
+    font-size: 1.8rem;
+    margin-right: var(--spacing-md);
+}
+
+.mission-text h3 {
+    color: var(--yellow-orange);
+    margin-bottom: var(--spacing-xs);
+    font-weight: 600;
+}
+
+.mission-text p {
+    margin-bottom: 0;
+    font-style: italic;
+}
+
 /* Features section */
 .landing-features {
-    background-color: var(--secondary-bg);
+    background-color: var(--temptress);
     padding: var(--spacing-xl) 10%;
     display: flex;
     justify-content: space-between;
     flex-wrap: wrap;
     gap: var(--spacing-lg);
+    position: relative;
+    overflow: hidden;
 }
+
+    /* Infinity stones-inspired pattern */
+    .landing-features::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--vermilion), var(--yellow-orange), #3CAA45, /* Space - Green */
+        var(--water), /* Reality - Blue */
+        var(--purpureus), /* Power - Purple */
+        #EE3F67 /* Soul - Red */
+        );
+    }
 
 .feature {
     flex: 1;
@@ -186,17 +413,36 @@ a {
     display: flex;
     align-items: flex-start;
     gap: var(--spacing-md);
-    padding: var(--spacing-md);
+    padding: var(--spacing-lg);
+    background-color: rgba(54, 26, 41, 0.5);
+    border-radius: 10px;
+    border: 1px solid rgba(146, 79, 158, 0.2);
+    transition: transform 0.3s, box-shadow 0.3s;
 }
 
+    .feature:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-md), var(--glow-purple);
+    }
+
 .feature-icon {
-    font-size: 2rem;
-    margin-right: var(--spacing-md);
+    font-size: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, var(--slate-blue), var(--purpureus));
+    border-radius: 50%;
+    color: var(--text-primary);
+    box-shadow: var(--shadow-sm);
 }
 
 .feature-text h3 {
     margin-bottom: var(--spacing-sm);
     font-weight: 600;
+    color: var(--water);
+    font-family: var(--header-font);
 }
 
 .feature-text p {
@@ -205,9 +451,9 @@ a {
 
 /* Footer */
 .landing-footer {
-    background-color: var(--primary-bg);
+    background-color: var(--dark-bg);
     padding: var(--spacing-lg) 10%;
-    border-top: 1px solid var(--border-color);
+    border-top: 1px solid rgba(146, 79, 158, 0.3);
     margin-top: auto;
 }
 
@@ -221,12 +467,25 @@ a {
     .footer-links a {
         color: var(--text-secondary);
         font-size: 0.9rem;
+        transition: color 0.2s;
     }
+
+        .footer-links a:hover {
+            color: var(--slate-blue);
+        }
 
 .copyright {
     color: var(--text-secondary);
     font-size: 0.9rem;
+    display: flex;
+    align-items: center;
 }
+
+    .copyright::before {
+        content: '⊗'; /* Avengers symbol */
+        margin-right: 8px;
+        color: var(--vermilion);
+    }
 
 /* Responsive adjustments */
 @media (max-width: 992px) {
@@ -240,6 +499,10 @@ a {
         text-align: center;
         margin-bottom: var(--spacing-xl);
     }
+
+    .team-section {
+        padding: var(--spacing-xl) 5%;
+    }
 }
 
 @media (max-width: 768px) {
@@ -250,10 +513,19 @@ a {
 
     .feature {
         max-width: 500px;
+        width: 100%;
     }
 
     .landing-content {
         padding: var(--spacing-xl) var(--spacing-md);
+    }
+
+    .team-quote {
+        font-size: 1.8rem;
+    }
+
+    .team-title {
+        font-size: 1.8rem;
     }
 }
 
@@ -267,6 +539,18 @@ a {
     }
 
     .landing-info p {
-        font-size: 1.2rem;
+        font-size: 1.1rem;
     }
+
+    .logo {
+        font-size: 2.5rem;
+    }
+
+    .team-description {
+        padding: var(--spacing-md);
+    }
+
+        .team-description p {
+            font-size: 1rem;
+        }
 }

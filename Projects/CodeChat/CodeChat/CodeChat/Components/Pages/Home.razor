@@ -1,14 +1,15 @@
 ﻿@page "/"
 @rendermode InteractiveWebAssembly
 @inject NavigationManager Navigation
-<PageTitle>CodeChat - Connect with the Homies</PageTitle>
+<PageTitle>CodeChat - Connect with Developers</PageTitle>
 <link href="css/home.css" rel="stylesheet" />
 
 <div class="landing-container">
     <div class="landing-content">
         <div class="landing-info">
             <div class="logo">CodeChat</div>
-            <h1>Connect with the homies in real time.</h1>
+            <h1>Connect with others in real time.</h1>
+            <p>CodeChat helps you connect and share with others around the world. Create rooms and talk with one another.</p>
         </div>
 
         <div class="login-container">
@@ -18,6 +19,7 @@
                 <button class="login-button" @onclick="NavigateToChat">Log In</button>
 
                 <div class="login-divider">
+                    <span>or</span>
                 </div>
 
                 <button class="create-account-button">Create New Account</button>
@@ -29,18 +31,13 @@
         </div>
     </div>
 
-    <div class="landing-features">
-        
+   
 
- 
-    </div>
+    
 
     <footer class="landing-footer">
         <div class="footer-links">
             <a href="#">About</a>
-            <a href="#">Privacy Policy</a>
-            <a href="#">Terms of Service</a>
-            <a href="#">Help Center</a>
         </div>
         <div class="copyright">
             CodeChat © 2025
