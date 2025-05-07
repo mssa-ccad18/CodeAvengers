@@ -16,16 +16,6 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddSignalR();
 
-builder.Services.AddCors(options =>
-{
-    options.AddDefaultPolicy(builder =>
-    {
-        builder.WithOrigins("https://localhost:5001", "http://localhost:5000")
-               .AllowAnyHeader()
-               .AllowAnyMethod()
-               .AllowCredentials();
-    });
-});
 
 builder.Services.AddResponseCompression(opts => {
     opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
@@ -52,7 +42,6 @@ else
     app.UseHsts();
 }
 
-app.UseCors();
 
 using (var scope = app.Services.CreateScope())
 {

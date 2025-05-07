@@ -7,7 +7,7 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
 
 
-var host = builder.Build();
+var host = builder.Build().RunAsync();
 
 
 
