@@ -1,5 +1,14 @@
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.DependencyInjection;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
-await builder.Build().RunAsync();
+
+
+
+var host = builder.Build();
+
+
+
+
