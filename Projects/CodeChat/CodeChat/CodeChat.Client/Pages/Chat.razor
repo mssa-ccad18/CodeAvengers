@@ -56,17 +56,15 @@
                     <button type="button" class="format-button">U</button>
                 </div>
 
-                <div class="message-input-container">
-                    <textarea class="message-input"
-                              placeholder="Type a message..."
-                              @bind="messageInput"
-                              rows="1">
-                    </textarea>
+                <textarea class="message-input"
+                          placeholder="Type a message..."
+                          @bind="messageInput"
+                          rows="1">
+                </textarea>
 
-                    <button class="send-button" @onclick="Send">
-                        Send
-                    </button>
-                </div>
+                <button class="send-button" @onclick="DoNothing">
+                    Send
+                </button>
             </div>
         </div>
     </div>
