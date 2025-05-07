@@ -2,10 +2,14 @@ using CodeChat.Client.Pages;
 using CodeChat.Components;
 using Microsoft.AspNetCore.ResponseCompression;
 using CodeChat.Hubs;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Design;
+using Microsoft.Data.Sqlite;
+using CodeChat.Data;
+using CodeChat.Client.Components.Models;
 using CodeChat.Services;
 using CodeChat.Services.Encryption;
 using CodeChat.Services.Interfaces;
-
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,10 +19,16 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddSignalR();
 
+
 builder.Services.AddResponseCompression(opts => {
     opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
         ["application/octet-stream"]);
 });
+
+
+var connectionString = "Data Source=chat.db";
+builder.Services.AddDbContext<ChatDbContext>(options =>
+    options.UseSqlite(connectionString));
 
 //encrypted room service
 builder.Services.AddControllersWithViews();
@@ -26,6 +36,7 @@ builder.Services.AddRazorPages();
 
 //Register encryption service
 builder.Services.AddSingleton<IRoomEncryptionService, RoomEncryptionService>();
+
 
 var app = builder.Build();
 
@@ -43,8 +54,29 @@ else
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
 
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ChatDbContext>();
+    db.Database.EnsureCreated();
+
+    if (!db.Users.Any())
+    {
+        db.Users.AddRange(
+            new User { Username = "alice", PublicKey = "PUBKEY_ALICE" },
+            new User { Username = "bob", PublicKey = "PUBKEY_BOB" }
+        );
+        db.SaveChanges();
+    }
+}
+
+app.MapGet("/api/users", async (ChatDbContext db) =>
+{
+    var users = await db.Users.ToListAsync();
+    return Results.Ok(users);
+});
+
+app.UseHttpsRedirection();
 
 app.UseAntiforgery();
 

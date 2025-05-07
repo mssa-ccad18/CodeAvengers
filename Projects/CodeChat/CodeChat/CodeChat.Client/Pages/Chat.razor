@@ -1,63 +1,97 @@
 ﻿@page "/chat"
 @rendermode InteractiveWebAssembly
 @using Microsoft.AspNetCore.SignalR.Client
-@inject NavigationManager Navigation
 @implements IAsyncDisposable
+@inject NavigationManager Navigation
 
-<PageTitle>Chat</PageTitle>
+<PageTitle>CodeChat</PageTitle>
 
-<div class="form-group">
-    <label>
-        User:
-        <input @bind="userInput" />
-    </label>
+<link href="css/chat.css" rel="stylesheet" />
+
+<div class="chat-container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="room-header">
+            <span class="room-name">Room Name</span>
+        </div>
+        <!-- User list -->
+        <div class="user-list">
+            <div class="user-item user-owner">
+                <span>Owner</span>
+            </div>
+            <div class="user-item">
+                <span>User 1</span>
+            </div>
+            <div class="user-item">
+                <span>User 2</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Chat Area -->
+    <div class="chat-area">
+        <div class="chat-header">
+            <span class="room-name">Room Name</span>
+        </div>
+
+        <div class="chat-messages" id="messageContainer">
+            <div class="message system-message">
+                <span>## User 2 has entered the chat! ##</span>
+            </div>
+            <div class="message user-message">
+                <div class="message-sender">Owner:</div>
+                <div class="message-text">Welcome!</div>
+            </div>
+            <div class="message user-message">
+                <div class="message-sender">User 1:</div>
+                <div class="message-text">What's up!</div>
+            </div>
+        </div>
+    </div>
 </div>
-<div class="form-group">
-    <label>
-        Message:
-        <input @bind="messageInput" size="50" />
-    </label>
-</div>
-<button @onclick="Send" disabled="@(!IsConnected)">Send</button>
 
-<hr>
-<ul id="messagesList">
-    @foreach (var message in messages) {
-        <li>@message</li>
-    }
-</ul>
+<!-- GPT-style Bottom Chat Bar -->
+<div class="chat-input-bar">
+    <textarea class="chat-input" placeholder="Type a message here..." @bind="messageInput"></textarea>
+    <button class="chat-send-button" @onclick="DoNothing">
+        Send
+    </button>
+</div>
 
 @code {
     private HubConnection? hubConnection;
-    private List<string> messages = [];
-    private string? userInput;
     private string? messageInput;
 
-    protected override async Task OnInitializedAsync() {
+    protected override async Task OnInitializedAsync()
+    {
         hubConnection = new HubConnectionBuilder()
             .WithUrl(Navigation.ToAbsoluteUri("/chathub"))
             .Build();
 
-        hubConnection.On<string, string, string>("ReceiveMessage", (user, message, date) => {
-            var encodedMsg = $"{user}: {message} {date}";
-            messages.Add(encodedMsg);
-            InvokeAsync(StateHasChanged);
-        });
-
         await hubConnection.StartAsync();
     }
 
-    private async Task Send() {
-        if (hubConnection is not null) {
-            await hubConnection.SendAsync("SendMessage", userInput, messageInput, DateTime.Now);
+    private async Task Send()
+    {
+        if (hubConnection is not null && !string.IsNullOrEmpty(messageInput))
+        {
+            await hubConnection.SendAsync("SendMessage", "User", messageInput, DateTime.Now.ToString());
+            messageInput = string.Empty;
         }
+    }
+
+    private void DoNothing()
+    {
+        // No logic yet for send.
     }
 
     public bool IsConnected =>
         hubConnection?.State == HubConnectionState.Connected;
 
-    public async ValueTask DisposeAsync() {
-        if (hubConnection is not null) {
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
             await hubConnection.DisposeAsync();
         }
     }
