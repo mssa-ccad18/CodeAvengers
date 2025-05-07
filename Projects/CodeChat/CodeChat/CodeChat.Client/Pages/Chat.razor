@@ -33,7 +33,7 @@
         <div class="chat-header">
             <span class="room-name">Room Name</span>
         </div>
-        
+
         <div class="chat-messages" id="messageContainer">
             <div class="message system-message">
                 <span>## User 2 has entered the chat! ##</span>
@@ -47,23 +47,26 @@
                 <div class="message-text">What's up!</div>
             </div>
         </div>
-        
+
         <div class="input-area">
-            <div class="formatting-toolbar">
-                <button type="button" class="format-button">B</button>
-                <button type="button" class="format-button">I</button>
-                <button type="button" class="format-button">U</button>
-            </div>
-            <div class="message-input-container">
-                <textarea 
-                    class="message-input"
-                    placeholder="Type a message..." 
-                    @bind="messageInput" 
-                    rows="1">
-                </textarea>
-                <button class="send-button" @onclick="Send" disabled="@(!IsConnected)">
-                    Send
-                </button>
+            <div class="message-input-toolbar">
+                <div class="formatting-toolbar">
+                    <button type="button" class="format-button">B</button>
+                    <button type="button" class="format-button">I</button>
+                    <button type="button" class="format-button">U</button>
+                </div>
+
+                <div class="message-input-container">
+                    <textarea class="message-input"
+                              placeholder="Type a message..."
+                              @bind="messageInput"
+                              rows="1">
+                    </textarea>
+
+                    <button class="send-button" @onclick="Send">
+                        Send
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -81,7 +84,7 @@
 
         await hubConnection.StartAsync();
     }
-    
+
     private async Task Send()
     {
         if (hubConnection is not null && !string.IsNullOrEmpty(messageInput))
@@ -89,6 +92,11 @@
             await hubConnection.SendAsync("SendMessage", "User", messageInput, DateTime.Now.ToString());
             messageInput = string.Empty;
         }
+    }
+
+    private void DoNothing()
+    {
+        // Placeholder for future Send functionality.
     }
 
     public bool IsConnected =>
