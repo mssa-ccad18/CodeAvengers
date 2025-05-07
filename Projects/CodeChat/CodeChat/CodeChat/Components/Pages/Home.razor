@@ -1,7 +1,56 @@
 ﻿@page "/"
+@rendermode InteractiveWebAssembly
+@inject NavigationManager Navigation
+<PageTitle>CodeChat - Connect with the Homies</PageTitle>
+<link href="css/home.css" rel="stylesheet" />
 
-<PageTitle>Home</PageTitle>
+<div class="landing-container">
+    <div class="landing-content">
+        <div class="landing-info">
+            <div class="logo">CodeChat</div>
+            <h1>Connect with the homies in real time.</h1>
+        </div>
 
-<h1>Hello, world!</h1>
+        <div class="login-container">
+            <div class="login-form">
+                <input type="text" placeholder="Email or username" class="login-input" />
+                <input type="password" placeholder="Password" class="login-input" />
+                <button class="login-button" @onclick="NavigateToChat">Log In</button>
 
-Welcome to your new app.
+                <div class="login-divider">
+                </div>
+
+                <button class="create-account-button">Create New Account</button>
+
+                <div class="forgot-password">
+                    <a href="#">Forgot password?</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="landing-features">
+        
+
+ 
+    </div>
+
+    <footer class="landing-footer">
+        <div class="footer-links">
+            <a href="#">About</a>
+            <a href="#">Privacy Policy</a>
+            <a href="#">Terms of Service</a>
+            <a href="#">Help Center</a>
+        </div>
+        <div class="copyright">
+            CodeChat © 2025
+        </div>
+    </footer>
+</div>
+
+@code {
+    private void NavigateToChat()
+    {
+        Navigation.NavigateTo("/chat");
+    }
+}
