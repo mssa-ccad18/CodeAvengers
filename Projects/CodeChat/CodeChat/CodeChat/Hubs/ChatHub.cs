@@ -1,8 +1,10 @@
-﻿using CodeChat.Client.Components.Models;
-using CodeChat.Data;
+
+﻿using CodeChat.Data;
 using Microsoft.AspNetCore.SignalR;
 using System.Threading.Tasks;
-
+using CodeChat.Client.Components.Models;
+using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 
 
 namespace CodeChat.Hubs;
@@ -23,10 +25,36 @@ public class ChatHub : Hub
 
     public async Task CreateUser(string username, string publicKey)
     {
-        var user = new User { Username = username, PublicKey = publicKey };
-        _db.Users.Add(user);
-        await _db.SaveChangesAsync();
 
-        await Clients.All.SendAsync("UserCreated", user);
+        try
+        {
+            
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(publicKey))
+            {
+                throw new HubException("Username and Public Key are required");
+            }
+
+            if (await _db.Users.AnyAsync(u => u.Username == username))
+            {
+                throw new HubException($"Username '{username}' is already taken");
+            }
+
+
+            var user = new User { Username = username, PublicKey = publicKey };
+            _db.Users.Add(user);
+            
+
+            var result = await _db.SaveChangesAsync();
+
+
+
+            await Clients.All.SendAsync("UserCreated", user);
+        }
+        catch (Exception ex)
+        {
+            throw new HubException($"Error creating user: {ex.Message}");
+        }
+
     }
 }
+
