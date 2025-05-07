@@ -7,6 +7,9 @@ using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Data.Sqlite;
 using CodeChat.Data;
 using CodeChat.Client.Components.Models;
+using CodeChat.Services;
+using CodeChat.Services.Encryption;
+using CodeChat.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,9 +25,18 @@ builder.Services.AddResponseCompression(opts => {
         ["application/octet-stream"]);
 });
 
+
 var connectionString = "Data Source=chat.db";
 builder.Services.AddDbContext<ChatDbContext>(options =>
     options.UseSqlite(connectionString));
+
+//encrypted room service
+builder.Services.AddControllersWithViews();
+builder.Services.AddRazorPages();
+
+//Register encryption service
+builder.Services.AddSingleton<IRoomEncryptionService, RoomEncryptionService>();
+
 
 var app = builder.Build();
 
@@ -72,5 +84,8 @@ app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveWebAssemblyRenderMode()
     .AddAdditionalAssemblies(typeof(CodeChat.Client._Imports).Assembly);
+//enpoints added (razorpages , controllers for encryption service)
+app.MapRazorPages();
+app.MapControllers();
 app.MapHub<ChatHub>("/chathub");
 app.Run();
