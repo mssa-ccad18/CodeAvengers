@@ -1,4 +1,4 @@
-﻿@page "/create-account"
+﻿@page "/"
 @rendermode InteractiveWebAssembly
 
 @layout Layout.LoginLayout
@@ -12,16 +12,39 @@
 <PageTitle>CodeChat - Connect with Developers</PageTitle>
 <link href="css/home.css" rel="stylesheet" />
 
-<div class="account-create-container">
-         <div class="login-container" >
+<div class="landing-container">
+    <div class="landing-content">
+        <div class="landing-info">
+            <div class="logo">CodeChat</div>
+            <h1>Connect with others in real time.</h1>
+            <p>CodeChat helps you connect and share with others around the world. Create rooms and talk with one another.</p>
+        </div>
+
+
+        <div class="login-container">
             <div class="login-form">
-                <input type="text" @bind=username placeholder="Username" class="login-input" />
-                <input type="email" @bind=email placeholder="Email" class="login-input" />
-                <input type="password" @bind=password placeholder="Password" class="login-input" />
-                <input type="password" @bind=verifyPassword placeholder="Verify Password" class="login-input" />
-                <button class="create-account-button" @onclick="CreateAccount">Create New Account</button>
+                <input type="text" @bind="username" placeholder="Email or username" class="login-input" />
+                <input type="password" @bind="password" placeholder="Password" class="login-input" />
+                <button class="login-button" @onclick="AuthenticateUser" disabled="@(!IsConnected)">Log In</button>
+
+
+                <div class="login-divider">
+                    <span>or</span>
+                </div>
+
+                <button class="create-account-button" @onclick="CreateNewAccount" disabled="@(!IsConnected)">Create New Account</button>
+
+                <div class="forgot-password">
+                    <a href="#">Forgot password?</a>
+                </div>
             </div>
-      </div>
+            @* <div class="login-status" @disabled="@(statusGood)"> *@
+            @*     @if (!statusGood) { *@
+            @*         <p>@status</p> *@
+            @*     } *@
+            @* </div> *@
+        </div>
+    </div>
 
 
 
@@ -38,14 +61,14 @@
 </div>
 
 
+
 @code {
     private string? username;
     private string? password;
-    private string? verifyPassword;
-    private string? email;
+    private bool statusGood = true;
     private string status = string.Empty;
     private HubConnection? connection;
-   
+
     protected override async Task OnInitializedAsync()
     {
         await InitializeSignalR();
@@ -53,7 +76,7 @@
 
     private async Task InitializeSignalR()
     {
-      
+
         var hubUrl = Navigation.ToAbsoluteUri("/chathub");
 
         connection = new HubConnectionBuilder()
@@ -68,41 +91,46 @@
         await connection.StartAsync();
     }
 
-    private async Task CreateAccount()
+    private async Task CreateNewAccount()
     {
-        
-        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(email))
-        {
-            return;
-        }
-        if (connection is not null)
-        {
-            if (connection.State != HubConnectionState.Connected)
-            {
-                status = "Error: Connection not established. Please refresh the page.";
-                return;
-            }
-
-            await connection.InvokeAsync("CreateUser", username, password, email);
-         }
+        await Task.Delay(500);
+        Navigation.NavigateTo("/create-account");
     }
 
     public async Task AuthenticateUser() {
-        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(email)) {
+        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password)) {
             return;
         }
         if (connection is not null) {
             if (connection.State != HubConnectionState.Connected) {
+                statusGood = false;
                 status = "Error: Connection not established. Please refresh the page.";
                 return;
             }
-            await connection.InvokeAsync("AuthenticateUser", username, password, email);
+            var isAuthenticated = await connection.InvokeAsync<bool>("AuthenticateUser", username, password);
+
+            if (isAuthenticated) {
+                statusGood = true;
+                status = "Success: User authenticated.";
+                await UserAuthenticated();
+            } else {
+                statusGood = false;
+                status = "Error: Invalid username or password.";
+                await UserNotAuthenticated();
+            }
         }
+    }
+
+    public async Task UserNotAuthenticated()
+    {
+        await Task.Delay(500);
+        Navigation.NavigateTo("/create-account");
     }
 
     public async Task UserAuthenticated() {
         // Handle user authentication success
         // Redirect to the chat page or show a success message
+        await Task.Delay(500);
         Navigation.NavigateTo("/chat");
     }
 
