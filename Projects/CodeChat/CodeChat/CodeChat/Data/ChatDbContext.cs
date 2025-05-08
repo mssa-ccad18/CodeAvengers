@@ -13,7 +13,9 @@ namespace CodeChat.Data
             : base(options) { }
 
         public DbSet<User> Users { get; set; }
-    }
+        public DbSet<Room> ChatRooms { get; set; }
+
+       }
 }
 
 
