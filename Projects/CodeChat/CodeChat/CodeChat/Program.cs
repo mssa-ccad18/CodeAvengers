@@ -63,11 +63,20 @@ using (var scope = app.Services.CreateScope())
     if (!db.Users.Any())
     {
         db.Users.AddRange(
-            new User { Username = "alice", PublicKey = "PUBKEY_ALICE" },
-            new User { Username = "bob", PublicKey = "PUBKEY_BOB" }
+            new User { Username = "alice", Password = "password" },
+            new User { Username = "bob", Password = "password" }
         );
         db.SaveChanges();
     }
+
+    if(!db.ChatRooms.Any())
+    {
+        var alice = db.Users.FirstOrDefault
+        db.ChatRooms.Add( new Room { RoomOwner = db.Users.})
+    }
+
+
+
 }
 
 app.MapGet("/api/users", async (ChatDbContext db) =>

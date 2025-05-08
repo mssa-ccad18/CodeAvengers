@@ -12,9 +12,9 @@ namespace CodeChat.Client.Components.Models
         public int Id { get; set; } //required property for EF Core to map the User entity to a database table with a unique identifier for each row, enabling operations like EnsureCreated() to succeed.
 
        
-        public string Username { get; set; } //add required?
+        public required string Username { get; set; }
 
-        public string Password //add required?
+        public required string Password
         {
             get { return hashedPassword; }
             set
@@ -25,27 +25,28 @@ namespace CodeChat.Client.Components.Models
         
 
         public string PublicKey { get; set; }
-        public List<int> ChatRooms { get; set; } = new List<int>();  //List of chatrooms a member of by RoomID (int) | should this be a dictionary? roomname + roomID
+        public List<Room> ChatRooms { get; set; } = new List<Room>();  //List of chatrooms a member of by RoomID (int) | should this be a dictionary? roomname + roomID
 
-        //public User(string username, string password)  //do we need to define the constructor? No because being instantiated via the login page where properties/fields will be assigned 
+        public User()  
+        {
+            //Username = username;
+            //Password = password;
+            PublicKey = string.Empty;
+        }
+
+        //public void JoinRoom(Room room)
         //{
-        //    Username = username;
-        //    Password = password;
-        //    //Key
+        //    //add check that room is not null
+        //    if (!ChatRooms.Contains(room))
+        //    {
+        //        ChatRooms.Add(room);
+        //    }
         //}
 
-        public void JoinRoom(Room room)
-        {
-            if (!ChatRooms.Contains(room.RoomID))
-            {
-                ChatRooms.Add(room.RoomID);
-            }
-        }
-
-        public void LeaveRoom(Room room)
-        {
-            ChatRooms.Remove(room.RoomID);
-        }
+        //public void LeaveRoom(Room room)
+        //{
+        //    ChatRooms.Remove(room);
+        //}
 
 
         public bool VerifyPassword(string password)

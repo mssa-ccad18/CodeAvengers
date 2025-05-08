@@ -23,7 +23,7 @@ public class ChatHub : Hub
         await Clients.All.SendAsync("ReceiveMessage", user, message, date);
     }
 
-    public async Task CreateUser(string username, string publicKey)
+    public async Task CreateUser(string username, string password, string publicKey)
     {
 
         try
@@ -40,7 +40,7 @@ public class ChatHub : Hub
             }
 
 
-            var user = new User { Username = username, PublicKey = publicKey };
+            var user = new User { Username = username, Password = password, PublicKey = publicKey };
             _db.Users.Add(user);
             
 
