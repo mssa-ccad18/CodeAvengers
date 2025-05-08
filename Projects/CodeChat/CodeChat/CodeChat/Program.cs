@@ -1,13 +1,9 @@
-using CodeChat.Client.Pages;
 using CodeChat.Components;
 using Microsoft.AspNetCore.ResponseCompression;
 using CodeChat.Hubs;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Design;
-using Microsoft.Data.Sqlite;
 using CodeChat.Data;
 using CodeChat.Client.Components.Models;
-using CodeChat.Services;
 using CodeChat.Services.Encryption;
 using CodeChat.Services.Interfaces;
 
@@ -63,26 +59,35 @@ using (var scope = app.Services.CreateScope())
     if (!db.Users.Any())
     {
         db.Users.AddRange(
-            new User { Username = "alice", Password = "password" },
-            new User { Username = "bob", Password = "password" }
+            new User { Username = "alice", Password = "password", Email = "alice.somebody@email.com" },
+            new User { Username = "bob", Password = "test123", Email = "bob.bob@bob.com" }
         );
         db.SaveChanges();
     }
 
-    if(!db.ChatRooms.Any())
-    {
-        var alice = db.Users.FirstOrDefault
-        db.ChatRooms.Add( new Room { RoomOwner = db.Users.})
+    if (!db.ChatRooms.Any()) {
+        var andrew = new User { Username = "Andrew", Password = "test", Email = "me.me@me.com"};
+        if (andrew != null) {
+            db.ChatRooms.Add(new Room {
+                RoomOwner = andrew.Username,
+                RoomKey = "GeneralKey", // Assuming RoomKey is the intended property
+                UserList = new List<string>() // Initialize UserList to avoid null reference
+            });
+            db.SaveChanges();
+        }
     }
-
-
-
 }
 
 app.MapGet("/api/users", async (ChatDbContext db) =>
 {
     var users = await db.Users.ToListAsync();
     return Results.Ok(users);
+});
+
+app.MapGet("/api/chatrooms", async (ChatDbContext db) =>
+{
+    var chatrooms = await db.ChatRooms.ToListAsync();
+    return Results.Ok(chatrooms);
 });
 
 app.UseHttpsRedirection();

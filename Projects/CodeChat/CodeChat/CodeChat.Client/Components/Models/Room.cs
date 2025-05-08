@@ -1,40 +1,54 @@
 ﻿
 
+using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.EntityFrameworkCore.Storage;
+using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
+
 namespace CodeChat.Client.Components.Models
 {
     public class Room
     {
+        // get the injected db
+        HttpClient HttpClient;
+
+        [Key]
         public int RoomID { get; set; }                  //how do we want these to be generated?
-        private string RoomKey { get; set; }
-        private string RoomOwner { get; set; }
+
+
+        [Required]
+        public string RoomKey { get; set; }
+        public string RoomOwner { get; set; }
         public List<string> UserList { get; set; } = new List<string>();
 
-        public Room()
-        {
-        }
+        public Room() {}
 
-        public Room(int roomID, string roomKey, string roomOwner, List<string> userList)
+        public Room(string roomKey, string roomOwner, List<string> userList, HttpClient http)
         {
-            RoomID = roomID;
             RoomKey = roomKey;
             RoomOwner = roomOwner;
             UserList = userList;
+            HttpClient = http;
         }
 
-        public void AddUser(User requestingUser, User userToAdd)
+        public void AddUser(string requestingUser, string userToAdd)
         {
-            if (this.RoomOwner != requestingUser.Username)
-            { 
-                throw new UnauthorizedAccessException($"Only {this.RoomOwner} can add users to the room.");
-            }
-            else if (!this.UserList.Contains(userToAdd.Username))
-            {
-                this.UserList.Add(userToAdd.Username);
+            var users = HttpClient.GetAsync("ChatHub/GetUsers").Result;
+            // parse the json result
+            var userList = JsonSerializer.Deserialize<List<User>>(users.Content.ReadAsStringAsync().Result);
+            // check if the user exists
+            if (userList == null || !userList.Any(u => u.Username == userToAdd) || userList.Find(u => u.Username == requestingUser) == null) {
+                //error message - populate where? 
                 return;
             }
-            else
+            else if (RoomOwner != requestingUser)
+            { 
+                throw new UnauthorizedAccessException($"Only {RoomOwner} can add users to the room.");
+            }
+            else if (!UserList.Contains(userToAdd))
             {
-                throw new ArgumentException("User already exists in room. ");
+                UserList.Add(userToAdd);
+                return;
             }
         }
 
