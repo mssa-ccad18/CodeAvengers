@@ -1,7 +1,25 @@
+/* Avengers Theme Variables */
+:root {
+    --temptress: #361A29; /* Dark background */
+    --vermilion: #D93D27; /* Iron Man red */
+    --yellow-orange: #EFA53A; /* Similar to Infinity Stone */
+    --water: #CCF4FE; /* Light text color */
+    --slate-blue: #626EDA; /* Captain America blue */
+    --purpureus: #924F9E; /* Thanos purple */
+    /* Additional UI colors */
+    --dark-bg: #1E1220; /* Darker version of Temptress */
+    --card-bg: #482436; /* Lighter version of Temptress */
+    --glow-purple: 0 0 15px rgba(146, 79, 158, 0.5);
+    --glow-blue: 0 0 15px rgba(98, 110, 218, 0.5);
+}
+
 .page {
     position: relative;
     display: flex;
     flex-direction: column;
+    background-color: var(--dark-bg);
+    background-image: radial-gradient(circle at 10% 20%, rgba(146, 79, 158, 0.05) 0%, transparent 50%), radial-gradient(circle at 90% 80%, rgba(98, 110, 218, 0.05) 0%, transparent 50%);
+    color: var(--water);
 }
 
 main {
@@ -9,31 +27,65 @@ main {
 }
 
 .sidebar {
-    background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
+    background: linear-gradient(180deg, var(--temptress), var(--dark-bg));
+    border-right: 1px solid rgba(146, 79, 158, 0.3);
 }
 
 .top-row {
-    background-color: #f7f7f7;
-    border-bottom: 1px solid #d6d5d5;
+    background-color: var(--dark-bg);
+    border-bottom: 4px solid;
+    border-image: linear-gradient(90deg, var(--vermilion), var(--yellow-orange), var(--slate-blue), var(--purpureus)) 1;
     justify-content: flex-end;
     height: 3.5rem;
     display: flex;
     align-items: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
     .top-row ::deep a, .top-row ::deep .btn-link {
         white-space: nowrap;
         margin-left: 1.5rem;
         text-decoration: none;
+        color: var(--water);
+        transition: all 0.3s;
+        font-weight: 500;
     }
 
-    .top-row ::deep a:hover, .top-row ::deep .btn-link:hover {
-        text-decoration: underline;
-    }
+        .top-row ::deep a:hover, .top-row ::deep .btn-link:hover {
+            text-decoration: none;
+            color: var(--vermilion);
+            text-shadow: 0 0 10px rgba(217, 61, 39, 0.3);
+            transform: scale(1.05);
+        }
 
-    .top-row ::deep a:first-child {
-        overflow: hidden;
-        text-overflow: ellipsis;
+        .top-row ::deep a:first-child {
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+.content {
+    padding: 1.5rem;
+    background-color: var(--dark-bg);
+    color: var(--water);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--dark-bg);
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(146, 79, 158, 0.5);
+    border-radius: 4px;
+}
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: var(--purpureus);
     }
 
 @media (max-width: 640.98px) {
@@ -41,9 +93,9 @@ main {
         justify-content: space-between;
     }
 
-    .top-row ::deep a, .top-row ::deep .btn-link {
-        margin-left: 0;
-    }
+        .top-row ::deep a, .top-row ::deep .btn-link {
+            margin-left: 0;
+        }
 }
 
 @media (min-width: 641px) {
@@ -64,11 +116,11 @@ main {
         z-index: 1;
     }
 
-    .top-row.auth ::deep a:first-child {
-        flex: 1;
-        text-align: right;
-        width: 0;
-    }
+        .top-row.auth ::deep a:first-child {
+            flex: 1;
+            text-align: right;
+            width: 0;
+        }
 
     .top-row, article {
         padding-left: 2rem !important;
@@ -77,8 +129,9 @@ main {
 }
 
 #blazor-error-ui {
-    color-scheme: light only;
-    background: lightyellow;
+    color-scheme: dark;
+    background: var(--card-bg);
+    color: var(--water);
     bottom: 0;
     box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
     box-sizing: border-box;
@@ -88,6 +141,7 @@ main {
     position: fixed;
     width: 100%;
     z-index: 1000;
+    border-top: 1px solid rgba(146, 79, 158, 0.3);
 }
 
     #blazor-error-ui .dismiss {
@@ -95,4 +149,5 @@ main {
         position: absolute;
         right: 0.75rem;
         top: 0.5rem;
+        color: var(--vermilion);
     }

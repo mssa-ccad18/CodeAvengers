@@ -24,4 +24,8 @@
     <None Include="..\CodeChat.Client\Pages\Component.razor" Link="Component.razor" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="wwwroot\NewFolder\" />
+  </ItemGroup>
+
 </Project>
