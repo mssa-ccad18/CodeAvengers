@@ -58,7 +58,7 @@ else
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ChatDbContext>();
-    db.Database.EnsureCreated();
+    db.Database.EnsureCreated(); 
 
     if (!db.Users.Any())
     {

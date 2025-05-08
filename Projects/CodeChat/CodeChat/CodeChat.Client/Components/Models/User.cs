@@ -9,10 +9,12 @@ namespace CodeChat.Client.Components.Models
         IPasswordHasher<User> hasher = new PasswordHasher<User>();
         public string hashedPassword = string.Empty;
 
-        public string Username { get; set; }
+        public int Id { get; set; } //required property for EF Core to map the User entity to a database table with a unique identifier for each row, enabling operations like EnsureCreated() to succeed.
 
-        //public string Password { get; set; }
-        public string Password
+       
+        public string Username { get; set; } //add required?
+
+        public string Password //add required?
         {
             get { return hashedPassword; }
             set
@@ -20,7 +22,7 @@ namespace CodeChat.Client.Components.Models
                 if (hashedPassword == string.Empty) this.hashedPassword = hasher.HashPassword(null, value);
             }
         }
-
+        
 
         public string PublicKey { get; set; }
         public List<int> ChatRooms { get; set; } = new List<int>();  //List of chatrooms a member of by RoomID (int) | should this be a dictionary? roomname + roomID
@@ -46,8 +48,8 @@ namespace CodeChat.Client.Components.Models
         }
 
 
-        public bool VerifyPassword(string plainText)
-        => (hasher.VerifyHashedPassword(null, this.Password, plainText) == PasswordVerificationResult.Success)
+        public bool VerifyPassword(string password)
+        => (hasher.VerifyHashedPassword(null, this.Password, password) == PasswordVerificationResult.Success)
             ? true : false;
 
 
