@@ -1,0 +1,30 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodeChat", "CodeChat\CodeChat.csproj", "{C7E4996B-7B5C-CFBF-59C6-951B320741DE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodeChat.Client", "CodeChat.Client\CodeChat.Client.csproj", "{6CAAE3D0-1AC3-D6C2-EB7A-122A28DF529A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C7E4996B-7B5C-CFBF-59C6-951B320741DE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C7E4996B-7B5C-CFBF-59C6-951B320741DE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C7E4996B-7B5C-CFBF-59C6-951B320741DE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C7E4996B-7B5C-CFBF-59C6-951B320741DE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6CAAE3D0-1AC3-D6C2-EB7A-122A28DF529A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6CAAE3D0-1AC3-D6C2-EB7A-122A28DF529A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6CAAE3D0-1AC3-D6C2-EB7A-122A28DF529A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6CAAE3D0-1AC3-D6C2-EB7A-122A28DF529A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {30265DC7-5133-4D3F-8338-04B2F8AD6273}
+	EndGlobalSection
+EndGlobal
