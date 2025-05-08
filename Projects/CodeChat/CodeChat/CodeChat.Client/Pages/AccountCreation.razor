@@ -1,0 +1,81 @@
+﻿@page "/"
+@rendermode InteractiveWebAssembly
+
+@layout Layout.LoginLayout
+@using Microsoft.AspNetCore.SignalR.Client
+@using System.Diagnostics
+
+@using CodeChat.Client.Components.Models
+@inject NavigationManager Navigation
+@implements IAsyncDisposable
+
+
+<h3>Create Account</h3>
+
+<div class="form-group">
+    <input @bind="username" placeholder="Username" class="form-control" />
+</div>
+<div class="form-group">
+    <input @bind="publicKey" placeholder="Public Key" class="form-control" />
+</div>
+<button @onclick="CreateAccount" disabled="@(!IsConnected)">Send</button>
+
+@code {
+    private string? username;
+    private string? publicKey;
+    private string status = string.Empty;
+    private HubConnection? connection;
+   
+    protected override async Task OnInitializedAsync()
+    {
+        await InitializeSignalR();
+    }
+
+    private async Task InitializeSignalR()
+    {
+      
+        var hubUrl = Navigation.ToAbsoluteUri("/chathub");
+
+        connection = new HubConnectionBuilder()
+            .WithUrl(hubUrl, options =>
+            {
+                options.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets;
+                options.SkipNegotiation = true;
+            })
+            .WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10) })
+            .Build();
+
+        await connection.StartAsync();
+    }
+
+    private async Task CreateAccount()
+    {
+        
+        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(publicKey))
+        {
+            return;
+        }
+        if (connection is not null)
+        {
+            if (connection.State != HubConnectionState.Connected)
+            {
+                status = "Error: Connection not established. Please refresh the page.";
+                return;
+            }
+
+            await connection.InvokeAsync("CreateUser", username, publicKey);
+         }
+    }
+
+    public bool IsConnected =>
+       connection?.State == HubConnectionState.Connected;
+
+    public async ValueTask DisposeAsync()
+    {
+        if (connection is not null)
+        {
+            await connection.DisposeAsync();
+        }
+    }
+
+}

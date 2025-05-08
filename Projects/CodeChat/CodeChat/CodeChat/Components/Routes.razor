@@ -1,7 +1,8 @@
-﻿<Router AppAssembly="typeof(Program).Assembly" AdditionalAssemblies="new[] { typeof(Client._Imports).Assembly }">
+﻿<Router AppAssembly="@typeof(Program).Assembly">
     <Found Context="routeData">
-        <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
-        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+        <RouteView RouteData="@routeData"
+                   DefaultLayout="@SelectLayout(routeData.RouteValues)" />
+        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
     </Found>
     <NotFound>
         <PageTitle>Not Found</PageTitle>
@@ -11,3 +12,15 @@
         </LayoutView>
     </NotFound>
 </Router>
+@code {
+    private Type SelectLayout(IReadOnlyDictionary<string, object> routeValues)
+    {
+        if (routeValues.TryGetValue("page", out var page) &&
+            page?.ToString() == "/")
+        {
+            return typeof(Layout.LoginLayout);
+        }
+ 
+        return typeof(Layout.MainLayout);
+    }
+}
