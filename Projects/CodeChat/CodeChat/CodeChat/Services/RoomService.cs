@@ -36,16 +36,26 @@ namespace CodeChat.Services
             return File.ReadAllBytes(keyFilePath);
         }
 
-        public (byte[] CipherText, byte[] Nonce, byte[] Tag) EncryptMessage(string roomId, string message)
+        public (byte[] CipherText, byte[] IV) EncryptMessage(string roomId, string message)
         {
             byte[] key = GetRoomKey(roomId);
-            return _encryptionService.EncryptMessage(message, key);
+
+            // Assuming the EncryptMessage method in IRoomEncryptionService should return a tuple (byte[] CipherText, byte[] IV).
+            // Adjusting the call to match the expected return type.
+            var encryptionResult = _encryptionService.EncryptMessage(message: message, key);
+
+            if (encryptionResult is (byte[] cipherText, byte[] iv))
+            {
+                return (cipherText, iv);
+            }
+
+            throw new InvalidOperationException("Encryption result is not in the expected format.");
         }
 
-        public string DecryptMessage(string roomId, byte[] cipherText, byte[] nonce, byte[] tag)
+        public string DecryptMessage(string roomId, byte[] cipherText, byte[] IV)
         {
             byte[] key = GetRoomKey(roomId);
-            return _encryptionService.DecryptMessage(cipherText, nonce, tag, key);
+            return _encryptionService.DecryptMessage(cipherText, IV, key);
         }
     }
 }

@@ -8,62 +8,53 @@ namespace CodeChat.Services.Encryption
 {
     public class RoomEncryptionService : IRoomEncryptionService  // class declaration, implementing IRoomEncryptionService
     {
-        private const int keySize = 32; // 256 bits
-        private const int NonceSize = 12; // 96 bits, recommended for ChaCha20-Poly1305
-        private const int TagSize = 16; // 128 bits, authentication tag - ensures no tampering has occurred
-
-
-        //Created by the Poly1305 message authentication code (MAC) function
-        //tag must match during decryption, or the message is rejected
-        //ChaCha20-Poly1305 is an authenticated encryption algorithm that combines the ChaCha20 stream cipher with the Poly1305 MAC
-
-
         public byte[] GenerateRoomKey()
         {
-            byte[] key = new byte[keySize];
-            using var rng = RandomNumberGenerator.Create();
-            rng.GetBytes(key);
-            return key;
+            using var aes = Aes.Create();
+            aes.KeySize = 256;
+            aes.GenerateKey();
+            return aes.Key;
         }
-        public (byte[] CipherText, byte[] Nonce, byte[] Tag) EncryptMessage(string message, byte[] key) //method 2: EncryptMessage(encrypts PT, returns CT and nonce sep) 
+
+        public (byte[] CipherText, byte[] IV) EncryptMessage(string message, byte[] key) //method 2: EncryptMessage(encrypts PT, returns CT and IV sep) 
         {
-            byte[] nonce = new byte[NonceSize];  // Must be unique for each encryption - apends to the ciphertext (message integrity)
-            using var rng = RandomNumberGenerator.Create();
-            rng.GetBytes(nonce);  //Creates a random nonce for each encryption operation, possibly use XChacha20 for nonce generation
+            byte[] cipherText;
+            byte[] iv;
 
-            byte[] plaintextBytes = Encoding.UTF8.GetBytes(message);
-            byte[] cipherText = new byte[plaintextBytes.Length];
-            byte[] tag = new byte[TagSize];
+            using var aes = Aes.Create();
+            aes.Key = key;
+            aes.GenerateIV(); //generate IV for messages
+            iv = aes.IV;
 
-            using var chacha = new ChaCha20Poly1305(key);
-            chacha.Encrypt(nonce, plaintextBytes, cipherText, tag);
+            using var encryptor = aes.CreateEncryptor(aes.Key, aes.IV);
+            using var ms = new MemoryStream();
+            using var cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write);
+            using var sw = new StreamWriter(cs);
+            sw.Write(message);
+            sw.Flush();
+            cs.FlushFinalBlock();
 
-            return (cipherText, nonce, tag);
+            cipherText = ms.ToArray();
+            return (cipherText, iv); //returning CT and IV as tuple
 
         }
 
-        public string DecryptMessage(byte[] cipherText, byte[] nonce, byte[] tag, byte[] key)
+        public string DecryptMessage(byte[] cipherText, byte[] iv, byte[] key)
         {
-            byte[] plaintextBytes = new byte[cipherText.Length];
+            using var aes = Aes.Create();
+            aes.Key = key;
+            aes.IV = iv;
 
-            using var chacha = new ChaCha20Poly1305(key);
-
-            try
-            {
-                chacha.Decrypt(nonce, cipherText, tag, plaintextBytes);
-            }
-            catch (CryptographicException)
-            {
-                throw new InvalidOperationException("Decryption failed - possible tampering detected.");
-            }
-
-            return Encoding.UTF8.GetString(plaintextBytes);
+            using var decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
+            using var ms = new MemoryStream(cipherText);
+            using var cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read);
+            using var sr = new StreamReader(cs);
+            return sr.ReadToEnd();
         }
+
+
 
     }
-
-
-
 
 
 
