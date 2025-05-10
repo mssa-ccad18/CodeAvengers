@@ -4,16 +4,16 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
-using CodeChat.Services.Encryption;
+using CodeChat.Services.Interfaces;
 
 namespace CodeChat.Services
 {
     public class RoomService
     {
-        private readonly RoomEncryptionService _encryptionService;
+        private readonly IRoomEncryptionService _encryptionService;
         private readonly string storagePath = "ChatAppStorage/rooms/";
 
-        public RoomService(RoomEncryptionService encryptionService)
+        public RoomService(IRoomEncryptionService encryptionService)
         {
             _encryptionService = encryptionService;
             Directory.CreateDirectory(storagePath);

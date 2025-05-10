@@ -6,7 +6,7 @@ using CodeChat.Services.Interfaces;
 
 namespace CodeChat.Services.Encryption
 {
-    public class RoomEncryptionService   // class declaration, implementing IRoomEncryptionService
+    public class RoomEncryptionService : IRoomEncryptionService
     {
         public byte[] GenerateRoomKey()
         {
