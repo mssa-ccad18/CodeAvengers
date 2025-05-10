@@ -9,6 +9,10 @@
 @inject NavigationManager Navigation
 @implements IAsyncDisposable
 
+@* injects for error handling and status message update from ChatHub.cs> *@
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+
 <PageTitle>CodeChat - Connect with Developers</PageTitle>
 <link href="css/home.css" rel="stylesheet" />
 
@@ -93,6 +97,18 @@
             .WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10) })
             .Build();
 
+        connection.On<string>("AccountCreationFailed", (message) =>
+                {
+                    status = message;
+                    StateHasChanged();
+                });
+
+        connection.On<string>("AccountCreationSuccess", (message) =>
+        {
+            status = message;
+            StateHasChanged();
+        });
+
         await connection.StartAsync();
     }
 
@@ -103,25 +119,26 @@
     }
 
     public async Task AuthenticateUser() {
-        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password)) {
-            return;
-        }
+
         if (connection is not null) {
             if (connection.State != HubConnectionState.Connected) {
                 statusGood = false;
                 status = "Error: Connection not established. Please refresh the page.";
                 return;
             }
+
             var isAuthenticated = await connection.InvokeAsync<bool>("AuthenticateUser", username, password);
+
+            // Need to determine if we still want to use the "statusGood" variable for anything
 
             if (isAuthenticated) {
                 statusGood = true;
-                status = "Success: User authenticated.";
+                //status = "Success: User authenticated.";
                 await UserAuthenticated();
             } else {
                 statusGood = false;
-                status = "Error: Invalid username or password.";
-                await UserNotAuthenticated();
+                //status = "Error: Invalid username or password.";
+                //await UserNotAuthenticated();
             }
         }
     }
@@ -149,5 +166,29 @@
             await connection.DisposeAsync();
         }
     }
+
+    private async Task HandleValidSubmit()
+    {
+        // handles various account creation errors encountered from ChatHub.cs methods then uptates status
+        var hubConnection = new HubConnectionBuilder()
+            .WithUrl(NavigationManager.ToAbsoluteUri("/chathub"))
+            .Build();
+
+        await hubConnection.StartAsync();
+
+        hubConnection.On<string>("AccountCreationFailed", (message) =>
+        {
+            status = message;
+            StateHasChanged();
+        });
+
+        hubConnection.On<string>("AccountCreationSuccess", (message) =>
+        {
+            status = message;
+        });
+    }
+
+
+
 
 }
