@@ -9,19 +9,28 @@
 @inject NavigationManager Navigation
 @implements IAsyncDisposable
 
+@* injects for error handling and status message update from ChatHub.cs> *@
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+
 <PageTitle>CodeChat - Connect with Developers</PageTitle>
 <link href="css/home.css" rel="stylesheet" />
 
+
+
 <div class="account-create-container">
-         <div class="login-container" >
-            <div class="login-form">
-                <input type="text" @bind=username placeholder="Username" class="login-input" />
-                <input type="email" @bind=email placeholder="Email" class="login-input" />
-                <input type="password" @bind=password placeholder="Password" class="login-input" />
-                <input type="password" @bind=verifyPassword placeholder="Verify Password" class="login-input" />
-                <button class="create-account-button" @onclick="CreateAccount">Create New Account</button>
-            </div>
-      </div>
+    <div class="login-container" >
+        <div class="login-form">
+            <input type="text" @bind=username placeholder="Username" class="login-input" />
+            <input type="email" @bind=email placeholder="Email" class="login-input" />
+            <input type="password" @bind=password placeholder="Password" class="login-input" />
+            <input type="password" @bind=verifyPassword placeholder="Verify Password" class="login-input" />
+            <button class="create-account-button" @onclick="CreateAccount">Create New Account</button>
+        </div>
+        <div class="status-message">
+            @status
+        </div>
+    </div>
 
 
 
@@ -45,7 +54,7 @@
     private string? email;
     private string status = string.Empty;
     private HubConnection? connection;
-   
+
     protected override async Task OnInitializedAsync()
     {
         await InitializeSignalR();
@@ -53,7 +62,7 @@
 
     private async Task InitializeSignalR()
     {
-      
+
         var hubUrl = Navigation.ToAbsoluteUri("/chathub");
 
         connection = new HubConnectionBuilder()
@@ -65,16 +74,29 @@
             .WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10) })
             .Build();
 
+        connection.On<string>("AccountCreationFailed", (message) =>
+        {
+            status = message;
+            StateHasChanged();
+        });
+
+        connection.On<string>("AccountCreationSuccess", (message) =>
+        {
+            status = message;
+            StateHasChanged();
+        });
+
         await connection.StartAsync();
     }
 
     private async Task CreateAccount()
     {
-        
-        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(email))
-        {
-            return;
-        }
+        //this is a redundant catch with ChatHub.cs's first condition in CreateUser
+        //if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(email))
+        //{
+        //    return;
+        //}
+
         if (connection is not null)
         {
             if (connection.State != HubConnectionState.Connected)
@@ -83,23 +105,19 @@
                 return;
             }
 
-            var userCreated = await connection.InvokeAsync<bool>("CreateUser", username, password, email);
+            var userCreated = await connection.InvokeAsync<Boolean>("CreateUser", username, email, password, verifyPassword);
 
             if (userCreated)
             {
-                status = "Account created successfully!";
-                // Optionally, redirect to the login page or show a success message
-                Navigation.NavigateTo("/chat");
+                await Task.Delay(2000);
+                // Redirects to the login page or show a success message
+                Navigation.NavigateTo("/");
             }
             else
             {
-                status = "Error: Account creation failed. Please try again.";
+                return;
             }
-
-
-
-            //await connection.InvokeAsync("CreateUser", username, password, email);
-         }
+        }
     }
 
     public async Task AuthenticateUser() {
@@ -130,6 +148,27 @@
         {
             await connection.DisposeAsync();
         }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        //handles various account creation errors encountered from ChatHub.cs then uptates status 
+        var hubConnection = new HubConnectionBuilder()
+            .WithUrl(NavigationManager.ToAbsoluteUri("/chathub"))
+            .Build();
+
+        await hubConnection.StartAsync();
+
+        hubConnection.On<string>("AccountCreationFailed", (message) =>
+        {
+            status = message;
+            StateHasChanged();
+        });
+
+        hubConnection.On<string>("AccountCreationSuccess", (message) =>
+        {
+            status = message;
+        });
     }
 
 }
