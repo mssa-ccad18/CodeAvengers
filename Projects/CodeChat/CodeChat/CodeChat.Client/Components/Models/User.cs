@@ -8,7 +8,7 @@ namespace CodeChat.Client.Components.Models
     public class User
     {
         IPasswordHasher<User> hasher = new PasswordHasher<User>();
-        public string hashedPassword = string.Empty;
+        private string hashedPassword = string.Empty;
 
         [Key]
         public int Id { get; set; } //required property for EF Core to map the User entity to a database table with a unique identifier for each row, enabling operations like EnsureCreated() to succeed.
@@ -16,7 +16,7 @@ namespace CodeChat.Client.Components.Models
         [Required]
         public required string Username { get; set; } 
         public required string Email { get; set; } 
-        public required string Password  {
+        public  string Password  {   //removed required
             get { return hashedPassword; }
             set
             {
@@ -27,7 +27,7 @@ namespace CodeChat.Client.Components.Models
         public List<Room> ChatRooms { get; set; } = new List<Room>();  //List of chatrooms a member of by RoomID (int) | should this be a dictionary? roomname + roomID
 
 
-        public User()  //do we need to define the constructor? No because being instantiated via the login page where properties/fields will be assigned 
+        public User()  //do we need to define the constructor? 
         {
             PublicKey = string.Empty;
         }
@@ -45,10 +45,12 @@ namespace CodeChat.Client.Components.Models
             ChatRooms.Remove(room);
         }
 
-
         public bool VerifyPassword(string password)
-        => (hasher.VerifyHashedPassword(null, this.Password, password) == PasswordVerificationResult.Success)
-            ? true : false;
+        {
+            var hasher = new PasswordHasher<User>();
+            return hasher.VerifyHashedPassword(null, this.Password, password) == PasswordVerificationResult.Success;
+
+        }
 
         override
         public string ToString() {

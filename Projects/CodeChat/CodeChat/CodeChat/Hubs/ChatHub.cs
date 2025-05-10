@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using CodeChat.Client.Components.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 
 
 namespace CodeChat.Hubs;
@@ -34,15 +35,12 @@ public class ChatHub : Hub
             }
 
             var user = new User { Username = username, Password = password, Email = email };
+
             _db.Users.Add(user);
-
-
-            var result = await _db.SaveChangesAsync();
-
-
+            await _db.SaveChangesAsync();
 
             await Clients.All.SendAsync("UserCreated", user);
-        } catch (Exception ex) {
+            } catch (Exception ex) {
             throw new HubException($"Error creating user: {ex.Message}");
         }
 
@@ -102,8 +100,18 @@ public class ChatHub : Hub
     }
 
     public async Task<bool> AuthenticateUser(string username, string password) {
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.Username == username);
-        return user != null && user.VerifyPassword(password);
+        
+        var passwordHash = await _db.Users.Where(u => u.Username == username).Select(u => u.Password).FirstOrDefaultAsync() ;
+
+        if (passwordHash == null)
+        {
+            return false;
+        }
+
+        var hasher = new PasswordHasher<User>();
+        var result = hasher.VerifyHashedPassword(null, passwordHash, password) == PasswordVerificationResult.Success;
+
+        return result;
     }
 }
 

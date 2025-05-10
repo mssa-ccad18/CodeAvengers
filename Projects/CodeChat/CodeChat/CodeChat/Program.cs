@@ -31,8 +31,7 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
 //Register encryption service
-builder.Services.AddSingleton<IRoomEncryptionService, RoomEncryptionService>();
-
+builder.Services.AddSingleton<IRoomEncryptionService, RoomEncryptionService>();  
 
 var app = builder.Build();
 

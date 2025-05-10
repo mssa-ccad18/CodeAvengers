@@ -83,7 +83,22 @@
                 return;
             }
 
-            await connection.InvokeAsync("CreateUser", username, password, email);
+            var userCreated = await connection.InvokeAsync<bool>("CreateUser", username, password, email);
+
+            if (userCreated)
+            {
+                status = "Account created successfully!";
+                // Optionally, redirect to the login page or show a success message
+                Navigation.NavigateTo("/chat");
+            }
+            else
+            {
+                status = "Error: Account creation failed. Please try again.";
+            }
+
+
+
+            //await connection.InvokeAsync("CreateUser", username, password, email);
          }
     }
 
