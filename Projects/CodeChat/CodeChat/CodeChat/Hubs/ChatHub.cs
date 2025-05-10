@@ -32,7 +32,11 @@ public class ChatHub : Hub
                 return false;
             }
 
-            //userName parameters check
+            if (username.Length < 3 || username.Length > 20 || !username.All(char.IsLetterOrDigit))
+            {
+                await Clients.Caller.SendAsync("AccountCreationFailed", "Username must be between 3 and 20 characters and contain only letters and digits.");
+                return false;
+            }
 
             if (await _db.Users.AnyAsync(u => u.Username == username)) {
 
@@ -40,11 +44,24 @@ public class ChatHub : Hub
                 return false;
             }
 
-            //email already in dB
+            if (await _db.Users.AnyAsync(u => u.Email == email))
+            {
+                await Clients.Caller.SendAsync("AccountCreationFailed", $"Email '{email}' already has a registered account.");
+                return false;
+            }
 
-            //email invalid format 
+            if (!System.Text.RegularExpressions.Regex.IsMatch(email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+            {
+                await Clients.Caller.SendAsync("AccountCreationFailed", "Invalid email format.");
+                return false;
+            }
 
-            //password parameter check 
+            // Disabled for ease during testing 
+            //if (password.Length < 8 || !password.Any(char.IsUpper) || !password.Any(char.IsLower) || !password.Any(char.IsDigit))
+            //{
+            //    await Clients.Caller.SendAsync("AccountCreationFailed", "Password must be at least 8 characters long, contain at least one uppercase letter, one lowercase letter, and one digit.");
+            //    return false;
+            //}
 
             if(password != verifyPassword)
             {
@@ -57,15 +74,12 @@ public class ChatHub : Hub
             _db.Users.Add(user);
             await _db.SaveChangesAsync();
             await Clients.Caller.SendAsync("AccountCreationSuccess", "Account created successfully! Redirecting to Homepage for login...");
-
-            //await Clients.All.SendAsync("UserCreated", user);
             return true;
             } 
         catch (Exception ex) {
             await Clients.Caller.SendAsync("AccountCreationFailed", $"Error creating user: {ex.Message}");
             return false;
         }
-
     }
 
     public async Task<List<User>> GetUsers() {
@@ -125,15 +139,37 @@ public class ChatHub : Hub
         
         var passwordHash = await _db.Users.Where(u => u.Username == username).Select(u => u.Password).FirstOrDefaultAsync() ;
 
+        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+        {
+            await Clients.Caller.SendAsync("AccountCreationFailed", "Please enter both a username and password.");
+            return false;
+        }
+
+        // Verifies that a passwordHash was created, i.e a username exists with a stored hasedpassword in the DB
+        // -> need to add an explicit check for username?
         if (passwordHash == null)
         {
+            await Clients.Caller.SendAsync("AccountCreationFailed", "Invalid username or password.");
             return false;
         }
 
         var hasher = new PasswordHasher<User>();
         var result = hasher.VerifyHashedPassword(null, passwordHash, password) == PasswordVerificationResult.Success;
 
-        return result;
+        if(result)
+        {
+            await Clients.Caller.SendAsync("AccountCreationSuccess", "Success: User authenticated.");
+            return true;
+        }
+        else
+        {
+            await Clients.Caller.SendAsync("AccountCreationFailed", "Invalid username or password.");
+            return false;
+        }
+
+
+
+
     }
 }
 

@@ -91,7 +91,7 @@
 
     private async Task CreateAccount()
     {
-        //this is a redundant catch with ChatHub.cs's first condition in CreateUser
+        // this is a redundant catch with ChatHub.cs's first condition in CreateUser
         //if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(email))
         //{
         //    return;
@@ -102,6 +102,7 @@
             if (connection.State != HubConnectionState.Connected)
             {
                 status = "Error: Connection not established. Please refresh the page.";
+                StateHasChanged();
                 return;
             }
 
@@ -110,7 +111,7 @@
             if (userCreated)
             {
                 await Task.Delay(2000);
-                // Redirects to the login page or show a success message
+                // Redirects to the login page after short delay.  Success message handled below
                 Navigation.NavigateTo("/");
             }
             else
@@ -152,7 +153,7 @@
 
     private async Task HandleValidSubmit()
     {
-        //handles various account creation errors encountered from ChatHub.cs then uptates status 
+        // handles various account creation errors encountered from ChatHub.cs methods then uptates status 
         var hubConnection = new HubConnectionBuilder()
             .WithUrl(NavigationManager.ToAbsoluteUri("/chathub"))
             .Build();
