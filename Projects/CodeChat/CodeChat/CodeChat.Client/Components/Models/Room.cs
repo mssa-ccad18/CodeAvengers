@@ -56,8 +56,7 @@ namespace CodeChat.Client.Components.Models
         {
             if (!this.UserList.Contains(userToRemove.Username))
             {
-                //error user not in room
-                return;
+                throw new ArgumentException("That username is not associated with this room.");
             }
             else this.UserList.Remove(userToRemove.Username); //how would removal from the list of approved users boot the user from the room?
 
