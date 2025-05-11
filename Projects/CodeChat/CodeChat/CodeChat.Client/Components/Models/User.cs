@@ -20,15 +20,14 @@ namespace CodeChat.Client.Components.Models
         // required properties for the User entity
         [Required]
         public required string Username { get; set; } 
-        public required string Email { get; set; } 
+        public required string Email { get; set; } = string.Empty;
         public required string Password  {
             get { return hashedPassword; }
             set
             {
-                if (hashedPassword != string.Empty) {  // check if password is already hashed
-                    return;
+                if (!string.IsNullOrEmpty(value) && hashedPassword == string.Empty) {
+                    hashedPassword = hasher.HashPassword(null!, value);
                 }
-                hashedPassword = hasher.HashPassword(null, value);
             }
         }
         public byte[] PublicKey { get; set; } = Array.Empty<byte>();  // public key for the user

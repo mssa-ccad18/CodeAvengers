@@ -1,4 +1,3 @@
-using CodeChat.Components;
 using Microsoft.AspNetCore.ResponseCompression;
 using CodeChat.Hubs;
 using Microsoft.EntityFrameworkCore;
@@ -6,9 +5,10 @@ using CodeChat.Data;
 using CodeChat.Services.Encryption;
 using CodeChat.Services;
 using CodeChat.Client.Services.Encryption;
-using Microsoft.AspNetCore.Components.Authorization;
 using CodeChat.Client.Services;
-using Microsoft.AspNetCore.Components.WebAssembly;
+using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using CodeChat.Components;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,13 +38,13 @@ var connectionString = "Data Source=chat.db";
 builder.Services.AddDbContext<ChatDbContext>(options =>
     options.UseSqlite(connectionString));
 
-//encrypted room service
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
 //Register encryption service
 builder.Services.AddSingleton(new RoomService(new RoomEncryptionService()));
-builder.Services.AddSingleton(new ChatEncryptionService());
+builder.Services.AddScoped<ChatEncryptionService>();
+builder.Services.AddScoped<UserSessionService>();
 
 var app = builder.Build();
 

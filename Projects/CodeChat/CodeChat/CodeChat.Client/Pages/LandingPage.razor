@@ -60,7 +60,6 @@
 @code {
     private string? username;
     private string? password;
-    private bool statusGood = true;
     private string status = string.Empty;
     private HubConnection? connection;
 
@@ -86,7 +85,7 @@
         await connection.StartAsync();
     }
 
-    private async Task CreateNewAccount()
+    private void CreateNewAccount()
     {
         Navigation.NavigateTo("/create-account");
     }
@@ -99,7 +98,6 @@
 
         if (connection is not null) {
             if (connection.State != HubConnectionState.Connected) {
-                statusGood = false;
                 status = "Error: Connection not established. Please refresh the page.";
                 return;
             }
@@ -107,27 +105,24 @@
             var isAuthenticated = await connection.InvokeAsync<bool>("AuthenticateUser", username, password);
 
             if (isAuthenticated) {
-                statusGood = true;
                 status = "Success: User authenticated.";
-                Session.Username = username;
+                await Session.SetUserSession(username);
                 Navigation.NavigateTo($"/dashboard/{username}");
             } else {
-                statusGood = false;
                 status = "Error: Invalid username or password.";
-                await UserNotAuthenticated();
+                UserNotAuthenticated();
             }
         }
     }
 
 
-    public async Task UserNotAuthenticated()
+    public void UserNotAuthenticated()
     {
         Navigation.NavigateTo("/create-account");
     }
 
-    public async Task UserAuthenticated() {
-        // Handle user authentication success
-        // Redirect to the chat page or show a success message
+    public void UserAuthenticated()
+    {
         AppContext.SetData("username", username);
         Navigation.NavigateTo($"/dashboard/{username}");
     }

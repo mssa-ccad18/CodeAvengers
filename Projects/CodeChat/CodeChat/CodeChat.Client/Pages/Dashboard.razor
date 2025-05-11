@@ -6,6 +6,7 @@
 @using CodeChat.Client.Services
 @using CodeChat.Client.Layout
 @inject NavigationManager Navigation
+@implements IAsyncDisposable
 
 <PageTitle>@Username's Dashboard</PageTitle>
 
@@ -203,7 +204,7 @@
 
 
     private async Task AddUserToRoomList() {
-        if (string.IsNullOrWhiteSpace(userToAdd)) {
+        if (string.IsNullOrWhiteSpace(userToAdd) || connection == null) {
             return;
         }
         var result = await connection.InvokeAsync<bool>("AddUserToRoom", RoomName, userToAdd);
@@ -216,17 +217,25 @@
     }
 
     private async Task<List<string>> GetOwnedChatRooms() {
+        if (connection == null) return new List<string>();
         OwnedChatRooms = await connection.InvokeAsync<List<string>>("GetOwnedChatRooms", Username);
         return OwnedChatRooms;
     }
 
     private async Task<List<string>> GetChatRooms() {
+        if (connection == null) return new List<string>();
         ChatRooms = await connection.InvokeAsync<List<string>>("GetChatRooms", Username);
         return ChatRooms;
     }
 
     private void NavigateToChatRoom() {
         Navigation.NavigateTo($"/chat/{RoomName}");
+    }
+
+    public async ValueTask DisposeAsync() {
+        if (connection != null) {
+            await connection.DisposeAsync();
+        }
     }
 
 }

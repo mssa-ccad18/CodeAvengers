@@ -1,9 +1,9 @@
 ﻿@page "/chat/{RoomName}"
 @rendermode InteractiveWebAssembly
 @using Microsoft.AspNetCore.SignalR.Client
-@using Client.Components.Models
-@using Client.Services.Encryption
-@using Client.Services
+@using CodeChat.Client.Components.Models
+@using CodeChat.Client.Services.Encryption
+@using CodeChat.Client.Services
 @implements IAsyncDisposable
 @inject NavigationManager Navigation
 @inject IJSRuntime _jsRuntime
@@ -18,7 +18,7 @@
     <!-- Sidebar -->
     <div class="sidebar">
         <div class="room-header">
-            <span class="room-name">Room Name</span>
+            <span class="room-name">@RoomName</span>
         </div>
         <!-- User list -->
         <div class="user-list">
@@ -75,65 +75,64 @@
 
     protected override async Task OnInitializedAsync()
     {
-        hubConnection = new HubConnectionBuilder()
-            .WithUrl(Navigation.ToAbsoluteUri("/chathub"))
-            .Build();
+        try 
+        {
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl(Navigation.ToAbsoluteUri("/chathub"))
+                .WithAutomaticReconnect()
+                .Build();
 
-        await hubConnection.StartAsync();
+            hubConnection.Closed += async (error) =>
+            {
+                await Task.Delay(new Random().Next(0, 5) * 1000);
+                await hubConnection.StartAsync();
+            };
 
-        RoomID = await hubConnection.InvokeAsync<string>("ValidateRoom", RoomName);
-        if (RoomID == null) {
-            // Handle room not found
-            Navigation.NavigateTo("/error");
-            return;
+            await hubConnection.StartAsync();
+
+            RoomID = await hubConnection.InvokeAsync<string>("ValidateRoom", RoomName);
+            if (RoomID == null) {
+                Navigation.NavigateTo("/error");
+                return;
+            }
+
+            Messages = await hubConnection.InvokeAsync<List<ChatMessage>>("RequestChatHistory", RoomName);
+            RecieveRoomKey();
+            ListenForMessages();
+
+            if (Session.Username != null) {
+                username = Session.Username;
+            } else {
+                Navigation.NavigateTo("/error");
+                return;
+            }
+            publicKey = await _jsRuntime.InvokeAsync<byte[]>("getPublicKey", username);
         }
-
-        // get the chat history
-        Messages = await hubConnection.InvokeAsync<List<ChatMessage>>("RequestChatHistory", RoomName);
-
-        // listen for the incoming encrypted room key 
-        await RecieveRoomKey();
-
-        // listen for incoming messages
-        await ListenForMessages();
-
-        if (Session.Username != null) {
-            username = Session.Username; // This retrieves the username
-        } else {
-            Navigation.NavigateTo("/error");
-            return;
+        catch (Exception ex)
+        {
+            status = $"Error: {ex.Message}";
         }
-        // get the public key for the user
-        publicKey = await _jsRuntime.InvokeAsync<byte[]>("getPublicKey", username);
     }
 
-    private async Task ListenForMessages() {
+    private void ListenForMessages() {
         if (hubConnection is not null) {
-
+            hubConnection.On<ChatMessage>("ReceiveMessage", async (message) => {
+                status = "Message received";
+                Messages.Add(message);
+                StateHasChanged();
+                if (hubConnection is not null) {
+                    await hubConnection.SendAsync("AddEncryptedMessageToChatHistory", RoomID, message);
+                }
+            });
         }
     }
 
-    private async Task<string> DecryptMessage(ChatMessage message) {
+    private ValueTask<string> DecryptMessage(ChatMessage message) {
         // decrypt the message
-        var decryptedMessage = await _jsRuntime.InvokeAsync<string>("decryptMessage", message.Content);
+        var decryptedMessage = _jsRuntime.InvokeAsync<string>("decryptMessage", message.Content);
         return decryptedMessage;
     }
     
-    /* @Task ListenForMessages
-     *
-     * ListenForMessages is called when a message is received from the server.
-     * It adds the message to the Messages list and updates the UI.
-     * @param: message The message to be added to the chat history.
-     */
-    public async Task ListenForMessages(ChatMessage message) {
-        hubConnection.On<ChatMessage>("RecieveMessage", async (message) => {
-            status = "Message received";
-            Messages.Add(message);
-            StateHasChanged();
-            await hubConnection.SendAsync("AddEncryptedMessageToChatHistory", RoomID, message);
-        });
-    }
-       
     /* @Task RecieveRoomKey
      *
      * RecieveRoomKey is called when an encrypted room key is received from the server.
@@ -141,15 +140,16 @@
      * @param: roomID The ID of the room for which the key is being sent.
      * @param: encryptedKey The encrypted room key.
      */
-    public async Task RecieveRoomKey() {
-        hubConnection.On<string, byte[], byte[]>("RecieveEncryptedRoomKey", async (roomID, encryptedKey, Iv) => {
-            status = "Encrypted room key received";
-            // decrypt the room key
-            var decryptedKey = _encryptionService.DecryptMessage(encryptedKey, Iv, publicKey);
-            // store the decrypted key in local storage
-            await _jsRuntime.InvokeVoidAsync("storeDecryptedKey", roomID, decryptedKey);
-
-        }); 
+    public void RecieveRoomKey() {
+        if (hubConnection is not null && publicKey is not null) {
+            hubConnection.On<string, byte[], byte[]>("RecieveEncryptedRoomKey", async (roomID, encryptedKey, Iv) => {
+                status = "Encrypted room key received";
+                // decrypt the room key
+                var decryptedKey = _encryptionService.DecryptMessage(encryptedKey, Iv, publicKey);
+                // store the decrypted key in local storage
+                await _jsRuntime.InvokeVoidAsync("storeDecryptedKey", roomID, decryptedKey);
+            }); 
+        }
     }
 
     public async Task<byte[]> GetDecryptedRoomKey(string roomID) {
@@ -185,6 +185,7 @@
     {
         if (hubConnection is not null)
         {
+            await hubConnection.StopAsync();
             await hubConnection.DisposeAsync();
         }
     }
