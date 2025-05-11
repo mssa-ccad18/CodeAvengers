@@ -1,12 +1,12 @@
 ﻿@page "/"
 @rendermode InteractiveWebAssembly
-
 @layout Layout.LoginLayout
 @using Microsoft.AspNetCore.SignalR.Client
 @using System.Diagnostics
-
 @using CodeChat.Client.Components.Models
+@using CodeChat.Client.Services
 @inject NavigationManager Navigation
+@inject UserSessionService Session
 @implements IAsyncDisposable
 
 <PageTitle>CodeChat - Connect with Developers</PageTitle>
@@ -38,11 +38,6 @@
                     <a href="#">Forgot password?</a>
                 </div>
             </div>
-            @* <div class="login-status" @disabled="@(statusGood)"> *@
-            @*     @if (!statusGood) { *@
-            @*         <p>@status</p> *@
-            @*     } *@
-            @* </div> *@
         </div>
     </div>
 
@@ -93,26 +88,29 @@
 
     private async Task CreateNewAccount()
     {
-        await Task.Delay(500);
         Navigation.NavigateTo("/create-account");
     }
 
     public async Task AuthenticateUser() {
+
         if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password)) {
             return;
         }
+
         if (connection is not null) {
             if (connection.State != HubConnectionState.Connected) {
                 statusGood = false;
                 status = "Error: Connection not established. Please refresh the page.";
                 return;
             }
+
             var isAuthenticated = await connection.InvokeAsync<bool>("AuthenticateUser", username, password);
 
             if (isAuthenticated) {
                 statusGood = true;
                 status = "Success: User authenticated.";
-                await UserAuthenticated();
+                Session.Username = username;
+                Navigation.NavigateTo($"/dashboard/{username}");
             } else {
                 statusGood = false;
                 status = "Error: Invalid username or password.";
@@ -121,17 +119,17 @@
         }
     }
 
+
     public async Task UserNotAuthenticated()
     {
-        await Task.Delay(500);
         Navigation.NavigateTo("/create-account");
     }
 
     public async Task UserAuthenticated() {
         // Handle user authentication success
         // Redirect to the chat page or show a success message
-        await Task.Delay(500);
-        Navigation.NavigateTo("/chat");
+        AppContext.SetData("username", username);
+        Navigation.NavigateTo($"/dashboard/{username}");
     }
 
     public bool IsConnected =>

@@ -9,47 +9,31 @@ namespace CodeChat.Client.Components.Models
 {
     public class Room
     {
-        // get the injected db
-        HttpClient HttpClient;
-
+       
         [Key]
-        public int RoomID { get; set; }                  //how do we want these to be generated?
+        public string RoomID { get; set; }                  //how do we want these to be generated?
 
 
         [Required]
-        public string RoomKey { get; set; }
+        public string RoomName { get; set; } = string.Empty; // name of the room
+        public byte[] RoomKey { get; set; }
         public string RoomOwner { get; set; }
         public List<string> UserList { get; set; } = new List<string>();
+        public List<ChatMessage> ChatHistory { get; set; } = new List<ChatMessage>(); // list of chat messages in the room
 
         public Room() {}
 
-        public Room(string roomKey, string roomOwner, List<string> userList, HttpClient http)
+        public Room(byte[] roomKey, string roomOwner, string roomName, List<string> userList)
         {
             RoomKey = roomKey;
             RoomOwner = roomOwner;
+            RoomName = roomName;
             UserList = userList;
-            HttpClient = http;
+            userList.Add(roomOwner); //add the room owner to the list of users
         }
 
         public void AddUser(string requestingUser, string userToAdd)
         {
-            var users = HttpClient.GetAsync("ChatHub/GetUsers").Result;
-            // parse the json result
-            var userList = JsonSerializer.Deserialize<List<User>>(users.Content.ReadAsStringAsync().Result);
-            // check if the user exists
-            if (userList == null || !userList.Any(u => u.Username == userToAdd) || userList.Find(u => u.Username == requestingUser) == null) {
-                //error message - populate where? 
-                return;
-            }
-            else if (RoomOwner != requestingUser)
-            { 
-                throw new UnauthorizedAccessException($"Only {RoomOwner} can add users to the room.");
-            }
-            else if (!UserList.Contains(userToAdd))
-            {
-                UserList.Add(userToAdd);
-                return;
-            }
         }
 
         public void RemoveUser(User userToRemove)

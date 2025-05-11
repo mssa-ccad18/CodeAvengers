@@ -1,0 +1,232 @@
+﻿@page "/dashboard/{Username}"
+@rendermode InteractiveWebAssembly
+@layout DashboardLayout
+@using Microsoft.AspNetCore.SignalR.Client
+@using CodeChat.Client.Components.Models
+@using CodeChat.Client.Services
+@using CodeChat.Client.Layout
+@inject NavigationManager Navigation
+
+<PageTitle>@Username's Dashboard</PageTitle>
+
+<link href="css/dashboard.css" rel="stylesheet" />
+
+<div class="layout-container">
+    <aside class="sidebar">
+        <!-- Sidebar UI -->
+        <div class="sidebar-header">
+            <h2>Chatrooms</h2>
+            <button class="create-room-button" @onclick="ShowModal"> Create Chat Room</button>
+        </div>
+
+        <div class="sidebar-section">
+            <h3>My Chatrooms</h3>
+            <ul>
+                @if (OwnedChatRooms != null && OwnedChatRooms.Count > 0) {
+                    foreach (var room in OwnedChatRooms) {
+                        <li><a href=$"chat/{room}">@room</a></li>
+                    }
+                } else {
+                    <li>No chat rooms available.</li>
+                }
+            </ul>
+        </div>
+
+        <div class="sidebar-section">
+            <h3>Other Chatrooms</h3>
+            <ul>
+                @if (ChatRooms != null && ChatRooms.Count > 0) {
+                    foreach (var room in ChatRooms) {
+                        <li><a href=$"chat/{room}">@room</a></li>
+                    }
+                } else {
+                    <li>No chat rooms available.</li>
+                }
+            </ul>
+        </div>
+    </aside>
+</div>
+@if (ShowCreateForm) {
+    <div class="modal-overlay" @onclick="CloseCreateForm">
+        <div class="modal-content" @onclick:stopPropagation>
+            <form class="create-room-form">
+                <h2>Create a Chat Room</h2>
+                <input type="text" @bind="RoomName" placeholder="Enter room name" />
+
+                <input type="search" @bind="userToAdd" placeholder="Add other users"
+                       @oninput="SearchUserDatabase"
+                       @onfocus="() => showSuggestions = true"
+                       @onblur="HideSuggestionsWithDelay" />
+
+                @if (suggestedUsers?.Any() == true && showSuggestions) {
+                    <ul class="autocomplete-suggestions">
+                        @foreach (var user in suggestedUsers) {
+                            <li @onclick="@(() => SelectSuggestedUser(user))">@user</li>
+                        }
+                    </ul>
+                }
+
+                <ul class="user-list">
+                    @if (Invites != null && Invites.Count > 0) {
+                        foreach (var invite in Invites) {
+                            <li>@invite</li>
+                        }
+                    } else {
+                        <li>No users to add.</li>
+                    }
+                </ul>
+
+                <button type="button" @onclick="AddUserToRoomList">Add</button>
+                <button type="button" @onclick="CreateChatRoom">Create</button>
+                <button type="button" @onclick="CloseCreateForm">Cancel</button>
+            </form>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string? Username { get; set; } = string.Empty;
+
+
+    private HubConnection? connection;
+    private string RoomName { get; set; } = string.Empty;
+    private List<string>? OwnedChatRooms { get; set; }
+    private List<string>? ChatRooms { get; set; }
+    private List<string>? Invites { get; set; } = new List<string>();
+    private string? userToAdd;
+    private string status = string.Empty;
+    private bool ShowCreateForm { get; set; } = false;
+    private List<string> suggestedUsers = new();
+    private bool showSuggestions = false;
+    private CancellationTokenSource debounceCts = new();
+
+
+    protected override async Task OnInitializedAsync() {
+        await InitializeSignalR();
+
+        if (connection == null)
+        {
+            return;
+        }
+
+        // listen for incoming invites
+        // connection.On<string>("ReceiveInvite", (invite) =>
+        // {
+        //     PromptInvite();
+        // });
+
+    }
+
+    private async Task InitializeSignalR() {
+
+        var hubUrl = Navigation.ToAbsoluteUri("/chathub");
+
+        connection = new HubConnectionBuilder()
+            .WithUrl(hubUrl, options => {
+                options.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets;
+                options.SkipNegotiation = true;
+            })
+            .WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10) })
+            .Build();
+
+        await connection.StartAsync();
+    }
+
+    private void ShowModal() {
+        ShowCreateForm = true;
+        StateHasChanged();
+    }
+
+
+    private void CloseCreateForm() {
+        ShowCreateForm = false;
+        showSuggestions = false;
+        userToAdd = string.Empty;
+        suggestedUsers.Clear();
+    }
+
+
+    private async Task CreateChatRoom() {
+        var result = await connection.InvokeAsync<bool>("CreateRoom", Username, RoomName, Invites);
+        if (result) {
+            Navigation.NavigateTo($"/chat/{RoomName}");
+        } else {
+            status = $"Failed to create room, a room with that name already exists";
+        }
+    }
+
+    private async Task JoinChatRoom() {
+        var result = await connection.InvokeAsync<bool>("JoinRoom", RoomName);
+        if (result) {
+            Navigation.NavigateTo($"/chat/{RoomName}");
+        } else {
+            status = $"Failed to join room, {Username} does not have access";
+        }
+    }
+
+    private async Task SearchUserDatabase(ChangeEventArgs e) {
+        userToAdd = e.Value?.ToString();
+
+        debounceCts.Cancel();
+        debounceCts = new CancellationTokenSource();
+        var token = debounceCts.Token;
+
+        try {
+            if (!string.IsNullOrWhiteSpace(userToAdd)) {
+                await Task.Delay(300, token);
+                suggestedUsers = await connection.InvokeAsync<List<string>>("SearchUserDatabase", userToAdd);
+                showSuggestions = true;
+                StateHasChanged();
+            } else {
+                suggestedUsers.Clear();
+                showSuggestions = false;
+            }
+        } catch (TaskCanceledException) { }
+    }
+
+    private void SelectSuggestedUser(string username) {
+        if (!Invites.Contains(username))
+            Invites.Add(username);
+
+        userToAdd = string.Empty;
+        suggestedUsers.Clear();
+        showSuggestions = false;
+    }
+
+    private async Task HideSuggestionsWithDelay() {
+        // Delay to allow click event to fire before hiding
+        await Task.Delay(200);
+        showSuggestions = false;
+        StateHasChanged();
+    }
+
+
+    private async Task AddUserToRoomList() {
+        if (string.IsNullOrWhiteSpace(userToAdd)) {
+            return;
+        }
+        var result = await connection.InvokeAsync<bool>("AddUserToRoom", RoomName, userToAdd);
+        if (result) {
+            status = $"User {userToAdd} added to room {RoomName}";
+            StateHasChanged();
+        } else {
+            status = $"Failed to add user {userToAdd} to room {RoomName}";
+        }
+    }
+
+    private async Task<List<string>> GetOwnedChatRooms() {
+        OwnedChatRooms = await connection.InvokeAsync<List<string>>("GetOwnedChatRooms", Username);
+        return OwnedChatRooms;
+    }
+
+    private async Task<List<string>> GetChatRooms() {
+        ChatRooms = await connection.InvokeAsync<List<string>>("GetChatRooms", Username);
+        return ChatRooms;
+    }
+
+    private void NavigateToChatRoom() {
+        Navigation.NavigateTo($"/chat/{RoomName}");
+    }
+
+}

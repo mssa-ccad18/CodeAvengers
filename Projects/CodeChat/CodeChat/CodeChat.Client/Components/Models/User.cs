@@ -1,18 +1,23 @@
-
+using Microsoft.JSInterop;
 ﻿using Microsoft.AspNetCore.Identity;
 using System.ComponentModel.DataAnnotations;
-using static CodeChat.Client.Pages.Chat;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CodeChat.Client.Components.Models
 {
     public class User
     {
-        IPasswordHasher<User> hasher = new PasswordHasher<User>();
-        public string hashedPassword = string.Empty;
+        private IPasswordHasher<User> hasher = new PasswordHasher<User>();
+        private string hashedPassword = string.Empty; // default value for hashedPassword to avoid null reference exceptions
 
+        public User() { } // default constructor
+
+        // Key property for EF Core to map the User entity to a database
+        // table with a unique identifier for each row, enabling operations like EnsureCreated() to succeed.
         [Key]
-        public int Id { get; set; } //required property for EF Core to map the User entity to a database table with a unique identifier for each row, enabling operations like EnsureCreated() to succeed.
+        public int Id { get; set; }
 
+        // required properties for the User entity
         [Required]
         public required string Username { get; set; } 
         public required string Email { get; set; } 
@@ -20,17 +25,17 @@ namespace CodeChat.Client.Components.Models
             get { return hashedPassword; }
             set
             {
-                if (hashedPassword == string.Empty) this.hashedPassword = hasher.HashPassword(null, value);
+                if (hashedPassword != string.Empty) {  // check if password is already hashed
+                    return;
+                }
+                hashedPassword = hasher.HashPassword(null, value);
             }
         }
-        public string PublicKey { get; set; }
+        public byte[] PublicKey { get; set; } = Array.Empty<byte>();  // public key for the user
+
+        // optional properties for the User entity
+        [NotMapped]
         public List<Room> ChatRooms { get; set; } = new List<Room>();  //List of chatrooms a member of by RoomID (int) | should this be a dictionary? roomname + roomID
-
-
-        public User()  //do we need to define the constructor? No because being instantiated via the login page where properties/fields will be assigned 
-        {
-            PublicKey = string.Empty;
-        }
 
         public void JoinRoom(Room room)
         {
@@ -47,14 +52,11 @@ namespace CodeChat.Client.Components.Models
 
 
         public bool VerifyPassword(string password)
-        => (hasher.VerifyHashedPassword(null, this.Password, password) == PasswordVerificationResult.Success)
-            ? true : false;
+        => (hasher.VerifyHashedPassword(this, Password, password) == PasswordVerificationResult.Success);
 
         override
         public string ToString() {
             return $"Username: {Username}";
         }
-
-
     }
 }
