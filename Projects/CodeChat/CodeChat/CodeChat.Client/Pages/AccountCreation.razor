@@ -9,9 +9,15 @@
 @inject IJSRuntime _jsRuntime
 @implements IAsyncDisposable
 
+@* injects for error handling and status message update from ChatHub.cs> *@
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+
 <PageTitle>CodeChat - Connect with Developers</PageTitle>
 <link href="css/home.css" rel="stylesheet" />
 <script src="crypto.js"></script>
+
+
 
 <div class="account-create-container">
     <div class="login-container" >
@@ -72,7 +78,6 @@
         connection.On<string>("AccountCreationSuccess", (message) => {
             status = message;
             StateHasChanged();
-            Navigation.NavigateTo($"/dashboard/{username}");
         });
 
         await connection.StartAsync();
@@ -92,18 +97,40 @@
             if (connection.State != HubConnectionState.Connected)
             {
                 status = "Error: Connection not established. Please refresh the page.";
+                StateHasChanged();
                 return;
             }
-            // check if username is valid
-            // var usernameFree = await connection.InvokeAsync<bool>("CheckUsername", username);
-            // if (username.Length < 3 || username.Length > 20 && usernameFree) {
-            //     status = "Error: Username must be between 3 and 20 characters.";
-            //     return;
-            // }
+
             await GenerateKeyPairAsync();
             await Task.Delay(1000);
             if (publicKey == null) {
                 status = "Error: Public key generation failed.";
+                StateHasChanged();
+                return;
+            }
+            var userCreated = await connection.InvokeAsync<Boolean>("CreateUser", username, email, password, verifyPassword);
+
+            if (userCreated)
+            {
+                await Task.Delay(2000);
+                // Redirects to the login page after short delay.  Success message handled below
+                Navigation.NavigateTo("/");
+            }
+            else
+            {
+                return;
+            }
+        }
+    }
+
+    public async Task AuthenticateUser() {
+        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(email)) {
+            return;
+        }
+        if (connection is not null) {
+            if (connection.State != HubConnectionState.Connected) {
+                status = "Error: Connection not established. Please refresh the page.";
+                StateHasChanged();
                 return;
             }
             var userCreated = await connection.InvokeAsync<bool>("CreateUser", username, password, email, publicKey);
@@ -114,11 +141,15 @@
                 Navigation.NavigateTo($"/dashboard/{username}");
             } else {
                 status = "Error: Account creation failed. Please try again.";
+                StateHasChanged();
+                return;
             }
         }
         else
         {
             status = "Error: Connection not established. Please refresh the page.";
+            StateHasChanged();
+            return;
         }
     }
 
@@ -126,6 +157,7 @@
         if (_jsRuntime == null)
         {
             status = "Error: JavaScript runtime is not available.";
+            StateHasChanged();
             return;
         }
 
@@ -133,6 +165,7 @@
         var pubKey = await _jsRuntime.InvokeAsync<byte[]>("generateKeyPair");
         if (pubKey == null) {
             status = "Error: Key pair generation failed.";
+            StateHasChanged();
             return;
         }
         publicKey = pubKey;
@@ -149,5 +182,4 @@
             await connection.DisposeAsync();
         }
     }
-
 }

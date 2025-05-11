@@ -7,8 +7,9 @@ namespace CodeChat.Client.Components.Models
 {
     public class User
     {
-        private IPasswordHasher<User> hasher = new PasswordHasher<User>();
-        private string hashedPassword = string.Empty; // default value for hashedPassword to avoid null reference exceptions
+
+        IPasswordHasher<User> hasher = new PasswordHasher<User>();
+        private string hashedPassword = string.Empty;
 
         public User() { } // default constructor
 
@@ -20,8 +21,8 @@ namespace CodeChat.Client.Components.Models
         // required properties for the User entity
         [Required]
         public required string Username { get; set; } 
-        public required string Email { get; set; } = string.Empty;
-        public required string Password  {
+        public required string Email { get; set; } 
+        public  string Password  {   //removed required
             get { return hashedPassword; }
             set
             {
@@ -49,12 +50,10 @@ namespace CodeChat.Client.Components.Models
             ChatRooms.Remove(room);
         }
 
-
         public bool VerifyPassword(string password)
         => (hasher.VerifyHashedPassword(this, Password, password) == PasswordVerificationResult.Success);
 
-        override
-        public string ToString() {
+        public override string ToString() {
             return $"Username: {Username}";
         }
     }

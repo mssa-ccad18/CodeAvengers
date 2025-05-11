@@ -6,7 +6,9 @@ using CodeChat.Services.Interfaces;
 
 namespace CodeChat.Services.Encryption
 {
+
     public class RoomEncryptionService  
+
     {
         public byte[] GenerateRoomKey()
         {

@@ -50,7 +50,14 @@ public class ChatHub : Hub
 
     public void AddEncryptedMessageToChatHistory(string roomID, ChatMessage message) {
         try {
-            _db.ChatRooms.FirstOrDefault(r => r.RoomID == roomID).ChatHistory.Add(message);
+            var room = _db.ChatRooms.FirstOrDefault(r => r.RoomID == roomID);
+            if (room != null) {
+                room.ChatHistory.Add(message);
+                _db.SaveChanges();
+            }
+            else {
+                throw new HubException($"Room '{roomID}' not found");
+            }
         } catch (Exception ex) {
             throw new HubException($"Error adding message to chat history: {ex.Message}");
         }
@@ -64,16 +71,60 @@ public class ChatHub : Hub
      * @param email: the email of the user
      * @remarks: Key Pair is generated in the user class
      */
-    public async Task<bool> CreateUser(string username, string password, string email, byte[] publicKey) {
+    public async Task<bool> CreateUser(string username, string password, string verifyPassword, string email, byte[] publicKey) {
         // attempt to add the user to the database
         try {
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(email)) 
+            {
+
+                await Clients.Caller.SendAsync("AccountCreationFailed", "Username, password, and email are required.");
+                return false;
+            }
+
+            if (username.Length < 3 || username.Length > 20 || !username.All(char.IsLetterOrDigit))
+            {
+                await Clients.Caller.SendAsync("AccountCreationFailed", "Username must be between 3 and 20 characters and contain only letters and digits.");
+                return false;
+            }
+
+            if (await _db.Users.AnyAsync(u => u.Username == username)) {
+
+                await Clients.Caller.SendAsync("AccountCreationFailed", $"Username '{username}' is already taken.");
+                return false;
+            }
+
+            if (await _db.Users.AnyAsync(u => u.Email == email))
+            {
+                await Clients.Caller.SendAsync("AccountCreationFailed", $"Email '{email}' already has a registered account.");
+                return false;
+            }
+
+            if (!System.Text.RegularExpressions.Regex.IsMatch(email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+            {
+                await Clients.Caller.SendAsync("AccountCreationFailed", "Invalid email format.");
+                return false;
+            }
+
+            // Disabled for ease during testing 
+            //if (password.Length < 8 || !password.Any(char.IsUpper) || !password.Any(char.IsLower) || !password.Any(char.IsDigit))
+            //{
+            //    await Clients.Caller.SendAsync("AccountCreationFailed", "Password must be at least 8 characters long, contain at least one uppercase letter, one lowercase letter, and one digit.");
+            //    return false;
+            //}
+
+            if(password != verifyPassword)
+            {
+                await Clients.Caller.SendAsync("AccountCreationFailed", "Passwords do not match");
+                return false;
+            }
             _db.Users.Add(new User { Username = username, Password = password, Email = email, PublicKey = publicKey });
             await _db.SaveChangesAsync();
+            await Clients.Caller.SendAsync("AccountCreationSuccess", "Account created successfully! Redirecting to Homepage for login...");
         } catch (Exception ex) {
+            await Clients.Caller.SendAsync("AccountCreationFailed", $"Error creating user: {ex.Message}");
             return false; // handle the exception
         }
         return true; // user created successfully
-
     }
 
     /* @method CheckUsername
@@ -243,7 +294,7 @@ public class ChatHub : Hub
         var hasher = new PasswordHasher<User>();
         var result = hasher.VerifyHashedPassword(null, passwordHash, password) == PasswordVerificationResult.Success;
 
-        return result;
+        return result;        
     }
 
     public async Task<string> ValidateRoom(string roomName) {
