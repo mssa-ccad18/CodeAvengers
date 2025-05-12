@@ -1,22 +1,17 @@
 ﻿@page "/create-account"
 @rendermode InteractiveWebAssembly
-
 @layout Layout.LoginLayout
 @using Microsoft.AspNetCore.SignalR.Client
 @using System.Diagnostics
-
+@using System.Text.Json
 @using CodeChat.Client.Components.Models
 @inject NavigationManager Navigation
+@inject IJSRuntime _jsRuntime
 @implements IAsyncDisposable
-
-@* injects for error handling and status message update from ChatHub.cs> *@
-@inject NavigationManager NavigationManager
-@inject IJSRuntime JSRuntime
 
 <PageTitle>CodeChat - Connect with Developers</PageTitle>
 <link href="css/home.css" rel="stylesheet" />
-
-
+<script src="crypto.js"></script>
 
 <div class="account-create-container">
     <div class="login-container" >
@@ -31,11 +26,6 @@
             @status
         </div>
     </div>
-
-
-
-
-
     <footer class="landing-footer">
         <div class="footer-links">
             <a href="#">About</a>
@@ -46,12 +36,12 @@
     </footer>
 </div>
 
-
 @code {
     private string? username;
     private string? password;
     private string? verifyPassword;
     private string? email;
+    private byte[]? publicKey;
     private string status = string.Empty;
     private HubConnection? connection;
 
@@ -74,16 +64,15 @@
             .WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10) })
             .Build();
 
-        connection.On<string>("AccountCreationFailed", (message) =>
-        {
+        connection.On<string>("AccountCreationFailed", (message) => {
             status = message;
             StateHasChanged();
         });
 
-        connection.On<string>("AccountCreationSuccess", (message) =>
-        {
+        connection.On<string>("AccountCreationSuccess", (message) => {
             status = message;
             StateHasChanged();
+            Navigation.NavigateTo($"/dashboard/{username}");
         });
 
         await connection.StartAsync();
@@ -91,13 +80,14 @@
 
     private async Task CreateAccount()
     {
-        // this is a redundant catch with ChatHub.cs's first condition in CreateUser
-        //if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(email))
-        //{
-        //    return;
-        //}
+        // check if passwords match
+        // if (password != verifyPassword) {
+        //     status = "Error: Passwords do not match.";
+        //     return;
+        // }
 
-        if (connection is not null)
+
+        if (connection is not null) // check if there is a connection to the hub
         {
             if (connection.State != HubConnectionState.Connected)
             {
@@ -105,39 +95,49 @@
                 StateHasChanged();
                 return;
             }
-
-            var userCreated = await connection.InvokeAsync<Boolean>("CreateUser", username, email, password, verifyPassword);
-
-            if (userCreated)
-            {
-                await Task.Delay(2000);
-                // Redirects to the login page after short delay.  Success message handled below
-                Navigation.NavigateTo("/");
-            }
-            else
-            {
+            // check if username is valid
+            // var usernameFree = await connection.InvokeAsync<bool>("CheckUsername", username);
+            // if (username.Length < 3 || username.Length > 20 && usernameFree) {
+            //     status = "Error: Username must be between 3 and 20 characters.";
+            //     return;
+            // }
+            await GenerateKeyPairAsync();
+            await Task.Delay(1000);
+            if (publicKey == null) {
+                status = "Error: Public key generation failed.";
                 return;
             }
+            var userCreated = await connection.InvokeAsync<bool>("CreateUser", username, password, email, publicKey);
+            await Task.Delay(1000);
+            if (userCreated) {
+                status = "Account created successfully!";
+                // Optionally, redirect to the login page or show a success message
+                Navigation.NavigateTo($"/dashboard/{username}");
+            } else {
+                status = "Error: Account creation failed. Please try again.";
+            }
+        }
+        else
+        {
+            status = "Error: Connection not established. Please refresh the page.";
         }
     }
 
-    public async Task AuthenticateUser() {
-        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(email)) {
+    public async Task GenerateKeyPairAsync() {
+        if (_jsRuntime == null)
+        {
+            status = "Error: JavaScript runtime is not available.";
             return;
         }
-        if (connection is not null) {
-            if (connection.State != HubConnectionState.Connected) {
-                status = "Error: Connection not established. Please refresh the page.";
-                return;
-            }
-            await connection.InvokeAsync("AuthenticateUser", username, password, email);
-        }
-    }
 
-    public async Task UserAuthenticated() {
-        // Handle user authentication success
-        // Redirect to the chat page or show a success message
-        Navigation.NavigateTo("/chat");
+        // Call the JavaScript function to generate a key pair
+        var pubKey = await _jsRuntime.InvokeAsync<byte[]>("generateKeyPair");
+        if (pubKey == null) {
+            status = "Error: Key pair generation failed.";
+            return;
+        }
+        publicKey = pubKey;
+        
     }
 
     public bool IsConnected =>
@@ -149,27 +149,6 @@
         {
             await connection.DisposeAsync();
         }
-    }
-
-    private async Task HandleValidSubmit()
-    {
-        // handles various account creation errors encountered from ChatHub.cs methods then uptates status 
-        var hubConnection = new HubConnectionBuilder()
-            .WithUrl(NavigationManager.ToAbsoluteUri("/chathub"))
-            .Build();
-
-        await hubConnection.StartAsync();
-
-        hubConnection.On<string>("AccountCreationFailed", (message) =>
-        {
-            status = message;
-            StateHasChanged();
-        });
-
-        hubConnection.On<string>("AccountCreationSuccess", (message) =>
-        {
-            status = message;
-        });
     }
 
 }
