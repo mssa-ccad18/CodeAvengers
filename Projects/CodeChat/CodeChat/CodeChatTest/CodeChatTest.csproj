@@ -13,6 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\CodeChat.Client\CodeChat.Client.csproj" />
     <ProjectReference Include="..\CodeChat\CodeChat.csproj" />
   </ItemGroup>
 
