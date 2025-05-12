@@ -92,6 +92,7 @@
             if (connection.State != HubConnectionState.Connected)
             {
                 status = "Error: Connection not established. Please refresh the page.";
+                StateHasChanged();
                 return;
             }
             // check if username is valid

@@ -42,7 +42,7 @@ namespace CodeChat.Client.Components.Models
         {
             if (!this.UserList.Contains(userToRemove.Username))
             {
-                return;
+                throw new ArgumentException("That username is not associated with this room.");
             }
             else this.UserList.Remove(userToRemove.Username);
         }

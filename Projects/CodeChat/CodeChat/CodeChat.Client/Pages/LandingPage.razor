@@ -9,6 +9,10 @@
 @inject UserSessionService Session
 @implements IAsyncDisposable
 
+@* injects for error handling and status message update from ChatHub.cs> *@
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+
 <PageTitle>CodeChat - Connect with Developers</PageTitle>
 <link href="css/home.css" rel="stylesheet" />
 
@@ -82,11 +86,24 @@
             .WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10) })
             .Build();
 
+        connection.On<string>("AccountCreationFailed", (message) =>
+                {
+                    status = message;
+                    StateHasChanged();
+                });
+
+        connection.On<string>("AccountCreationSuccess", (message) =>
+        {
+            status = message;
+            StateHasChanged();
+        });
+
         await connection.StartAsync();
     }
 
     private void CreateNewAccount()
     {
+        await Task.Delay(500);
         Navigation.NavigateTo("/create-account");
     }
 
@@ -118,6 +135,7 @@
 
     public void UserNotAuthenticated()
     {
+        await Task.Delay(500);
         Navigation.NavigateTo("/create-account");
     }
 
