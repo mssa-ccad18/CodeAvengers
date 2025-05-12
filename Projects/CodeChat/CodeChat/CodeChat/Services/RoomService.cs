@@ -4,16 +4,17 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
-using CodeChat.Services.Interfaces;
+using CodeChat.Services.Encryption;
 
 namespace CodeChat.Services
 {
-    public class RoomService
+    public class RoomService 
     {
-        private readonly IRoomEncryptionService _encryptionService;
+        private readonly RoomEncryptionService _encryptionService;
         private readonly string storagePath = "ChatAppStorage/rooms/";
-
-        public RoomService(IRoomEncryptionService encryptionService)
+        
+        public RoomEncryptionService EncryptionService => _encryptionService;
+        public RoomService(RoomEncryptionService encryptionService)
         {
             _encryptionService = encryptionService;
             Directory.CreateDirectory(storagePath);
@@ -25,6 +26,13 @@ namespace CodeChat.Services
             string keyFilePath = Path.Combine(storagePath, $"{roomId}.key");
             File.WriteAllBytes(keyFilePath, key);
             return key;
+        }
+
+        public (byte[] CipherText, byte[] IV) EncryptPublicRoomKey(string roomKey, byte[] userPublicKey) {
+            // Assuming the EncryptPublicRoomKey method in IRoomEncryptionService should return a byte array.
+            // Adjusting the call to match the expected return type.
+            var encryptedKey = _encryptionService.EncryptMessage(roomKey, userPublicKey);
+            return encryptedKey;
         }
 
         public byte[] GetRoomKey(string roomId)

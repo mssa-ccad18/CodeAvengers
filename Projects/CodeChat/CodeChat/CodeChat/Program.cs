@@ -1,11 +1,14 @@
-using CodeChat.Components;
 using Microsoft.AspNetCore.ResponseCompression;
 using CodeChat.Hubs;
 using Microsoft.EntityFrameworkCore;
 using CodeChat.Data;
-using CodeChat.Client.Components.Models;
 using CodeChat.Services.Encryption;
-using CodeChat.Services.Interfaces;
+using CodeChat.Services;
+using CodeChat.Client.Services.Encryption;
+using CodeChat.Client.Services;
+using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using CodeChat.Components;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +17,15 @@ builder.Services.AddRazorComponents()
     .AddInteractiveWebAssemblyComponents();
 
 builder.Services.AddSignalR();
+
+builder.Services.AddCors(options => {
+    options.AddPolicy("CorsPolicy",
+        builder => {
+            builder.AllowAnyOrigin()
+                .AllowAnyMethod()
+                .AllowAnyHeader();
+        });
+});
 
 
 builder.Services.AddResponseCompression(opts => {
@@ -26,16 +38,18 @@ var connectionString = "Data Source=chat.db";
 builder.Services.AddDbContext<ChatDbContext>(options =>
     options.UseSqlite(connectionString));
 
-//encrypted room service
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
 //Register encryption service
-builder.Services.AddSingleton<IRoomEncryptionService, RoomEncryptionService>();  
+builder.Services.AddSingleton(new RoomService(new RoomEncryptionService()));
+builder.Services.AddScoped<ChatEncryptionService>();
+builder.Services.AddScoped<UserSessionService>();
 
 var app = builder.Build();
 
 app.UseResponseCompression();
+app.UseCors("CorsPolicy");
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -53,28 +67,7 @@ else
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ChatDbContext>();
-    db.Database.EnsureCreated(); 
-
-    if (!db.Users.Any())
-    {
-        db.Users.AddRange(
-            new User { Username = "alice", Password = "password", Email = "alice.somebody@email.com" },
-            new User { Username = "bob", Password = "test123", Email = "bob.bob@bob.com" }
-        );
-        db.SaveChanges();
-    }
-
-    if (!db.ChatRooms.Any()) {
-        var andrew = new User { Username = "Andrew", Password = "test", Email = "me.me@me.com"};
-        if (andrew != null) {
-            db.ChatRooms.Add(new Room {
-                RoomOwner = andrew.Username,
-                RoomKey = "GeneralKey", // Assuming RoomKey is the intended property
-                UserList = new List<string>() // Initialize UserList to avoid null reference
-            });
-            db.SaveChanges();
-        }
-    }
+    db.Database.EnsureCreated();
 }
 
 app.MapGet("/api/users", async (ChatDbContext db) =>
