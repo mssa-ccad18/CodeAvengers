@@ -107,7 +107,8 @@
                 // Optionally, redirect to the login page or show a success message
                 Navigation.NavigateTo($"/dashboard/{username}");
             } else {
-                status = "Error: Account creation failed. Please try again.";
+                //status = "Error: Account creation failed. Please try again.";
+                return;
             }
         }
         else
@@ -143,5 +144,11 @@
             await connection.DisposeAsync();
         }
     }
+
+    
+
+
+
+
 
 }

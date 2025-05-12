@@ -10,7 +10,7 @@ namespace CodeChat.Client.Components.Models
         IPasswordHasher<User> hasher = new PasswordHasher<User>();
         private string hashedPassword = string.Empty;
 
-        public User() { } // default constructor
+        public User() { } 
 
         // Key property for EF Core to map the User entity to a database
         // table with a unique identifier for each row, enabling operations like EnsureCreated() to succeed.
