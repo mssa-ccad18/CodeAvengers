@@ -37,6 +37,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: change directory
+        run: cd Projects/CodeChat/CodeChat
       - name: print current working directory
         run: pwd
       - uses: actions/checkout@v4
