@@ -79,6 +79,9 @@
         await InitializeSignalR();
     }
 
+
+    // sets up a SignalR connection between Blazor WebAssembly client and a SignalR hub on the server (at /chathub).
+
     private async Task InitializeSignalR()
     {
 
@@ -155,28 +158,5 @@
             await connection.DisposeAsync();
         }
     }
-
-    //private async Task HandleValidSubmit()
-    //{
-    //    // handles various account creation errors encountered from ChatHub.cs methods then uptates status
-    //    var hubConnection = new HubConnectionBuilder()
-    //        .WithUrl(NavigationManager.ToAbsoluteUri("/chathub"))
-    //        .Build();
-    //
-    //    await hubConnection.StartAsync();
-    //
-    //    hubConnection.On<string>("AccountCreationFailed", (message) =>
-    //    {
-    //        status = message;
-    //        StateHasChanged();
-    //    });
-    //
-    //    hubConnection.On<string>("AccountCreationSuccess", (message) =>
-    //    {
-    //        status = message;
-    //    });
-    //}
-
-
 
 }
