@@ -8,6 +8,7 @@ using CodeChat.Client.Services.Encryption;
 using CodeChat.Client.Services;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using CodeChat.Components;
+using Microsoft.JSInterop;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -40,6 +41,8 @@ builder.Services.AddDbContext<ChatDbContext>(options =>
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
+
+
 
 //Register encryption service
 builder.Services.AddSingleton(new RoomService(new RoomEncryptionService()));

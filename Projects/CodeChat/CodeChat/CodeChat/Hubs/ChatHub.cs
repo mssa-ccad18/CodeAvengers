@@ -47,9 +47,25 @@ public class ChatHub : Hub
 
     public void AddEncryptedMessageToChatHistory(string roomID, ChatMessage message) {
         try {
-            _db.ChatRooms.FirstOrDefault(r => r.RoomID == roomID).ChatHistory.Add(message);
+            var room = _db.ChatRooms.FirstOrDefault(r => r.RoomID == roomID);
+            if (room != null) {
+                room.ChatHistory.Add(message);
+                _db.SaveChanges();
+                Clients.All.SendAsync("ChatHistoryUpdated", roomID, message);
+            } else {
+                throw new HubException($"Room '{roomID}' not found");
+            }
         } catch (Exception ex) {
             throw new HubException($"Error adding message to chat history: {ex.Message}");
+        }
+    }
+
+    public async Task RequestRoomKey(string roomID, string username) {
+        var room = await _db.ChatRooms.FirstOrDefaultAsync(r => r.RoomID == roomID);
+        if (room != null) {
+            await Clients.User(username).SendAsync("ReceiveEncryptedRoomKey", room.RoomKey);
+        } else {
+            throw new HubException($"Room with ID '{roomID}' not found");
         }
     }
 
@@ -63,53 +79,50 @@ public class ChatHub : Hub
      */
     public async Task<bool> CreateUser(string username, string password, string verifyPassword, string email, byte[] publicKey) {
         // attempt to add the user to the database
-        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(email)) {
+        if (await _db.Users.AnyAsync(u => u.Username == username)) {
+            await Clients.Caller.SendAsync("AccountCreationFailed", $"Username '{username}' is already taken.");
+            return false;
+
+        } if (await _db.Users.AnyAsync(u => u.Email == email)) {
+            await Clients.Caller.SendAsync("AccountCreationFailed", $"Email '{email}' already has a registered account.");
+            return false;
+
+        } if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(email)) {
 
             await Clients.Caller.SendAsync("AccountCreationFailed", "Username, password, and email are required.");
             return false;
-        } else if (username.Length < 3 || username.Length > 20 || !username.All(char.IsLetterOrDigit)) {
+
+        } if (username.Length < 3 || username.Length > 20 || !username.All(char.IsLetterOrDigit)) {
             await Clients.Caller.SendAsync("AccountCreationFailed", "Username must be between 3 and 20 characters and contain only letters and digits.");
             return false;
 
-        } else if (password != verifyPassword) {
+        } if (password != verifyPassword) {
             await Clients.Caller.SendAsync("AccountCreationFailed", "Passwords do not match");
             return false;
-        } else if (!System.Text.RegularExpressions.Regex.IsMatch(email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$")) {
+
+        } if (!System.Text.RegularExpressions.Regex.IsMatch(email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$")) {
             await Clients.Caller.SendAsync("AccountCreationFailed", "Invalid email format.");
             return false;
+
         } else {
 
             try {
                 _db.Users.Add(new User { Username = username, Password = password, Email = email, PublicKey = publicKey });
                 await _db.SaveChangesAsync();
 
-                if (await _db.Users.AnyAsync(u => u.Username == username)) {
-                    await Clients.Caller.SendAsync("AccountCreationFailed", $"Username '{username}' is already taken.");
-                    return false;
-                }
-                else if (await _db.Users.AnyAsync(u => u.Email == email)) {
-                    await Clients.Caller.SendAsync("AccountCreationFailed", $"Email '{email}' already has a registered account.");
-                    return false;
-                } else { 
-
-
-
-                    // Disabled for ease during testing 
-                    //if (password.Length < 8 || !password.Any(char.IsUpper) || !password.Any(char.IsLower) || !password.Any(char.IsDigit))
-                    //{
-                    //    await Clients.Caller.SendAsync("AccountCreationFailed", "Password must be at least 8 characters long, contain at least one uppercase letter, one lowercase letter, and one digit.");
-                    //    return false;
-                    //}
-
-                    // user created successfully
+                var isCreated = await CheckUsername(username);
+                if (!isCreated) {
                     await Clients.Caller.SendAsync("AccountCreationSuccess", "Account created successfully! Redirecting to Homepage for login...");
                     return true;
+                } else {
+                    await Clients.Caller.SendAsync("AccountCreationFailed", "Error creating user.");
+                    return false;
                 }
             } catch (Exception ex) {
                 await Clients.Caller.SendAsync("AccountCreationFailed", $"Error creating user: {ex.Message}");
                 return false; // handle the exception
             }
-        }
+        } 
     }
 
 
@@ -173,6 +186,15 @@ public class ChatHub : Hub
         }
     }
 
+    public async Task<string> ValidateRoom(string roomName) {
+        var room = await _db.ChatRooms.FirstOrDefaultAsync(r => r.RoomName == roomName);
+        if (room != null) {
+            return room.RoomID;
+        } else {
+            throw new HubException($"Room with ID '{roomName}' not found");
+        }
+    }
+
     /* @method CreateRoom
      * 
      * @description: creates a new chat room in the database, adds the users to the room,
@@ -185,7 +207,15 @@ public class ChatHub : Hub
         var userKeyList = new List<string>();
         var roomID = Guid.NewGuid().ToString();
         var roomKey = _roomService.EncryptionService.GenerateRoomKey();
-
+        var roomOwnerPublicKey = await _db.Users
+            .Where(u => u.Username == roomOwner)
+            .Select(u => u.PublicKey)
+            .FirstOrDefaultAsync();
+        if (roomOwnerPublicKey == null) {
+            throw new HubException($"User '{roomOwner}' not found");
+        }
+        var encryptedRoomKey = _roomService.EncryptPublicRoomKey(roomKey, roomOwnerPublicKey);
+        await Clients.User(roomOwner).SendAsync("ReceiveEncryptedRoomKey", encryptedRoomKey);
         // create the room and add it to the database
         var room = new Room { RoomID = roomID, RoomName = roomName,  RoomKey = roomKey, RoomOwner = roomOwner, UserList = userList };
         _db.ChatRooms.Add(room);
@@ -199,10 +229,9 @@ public class ChatHub : Hub
                 var user = await _db.Users.FirstOrDefaultAsync(u => u.Username == userName);
                 if (user != null) {
                     // convert roomKey from byte[] to string
-                    var roomKeyString = Convert.ToBase64String(roomKey);
 
                     // encrypt the room key with the user's public key and then send it
-                    var encryptedKey = _roomService.EncryptPublicRoomKey(roomKeyString, user.PublicKey) ;
+                    var encryptedKey = _roomService.EncryptPublicRoomKey(roomKey, user.PublicKey) ;
                     await Clients.User(user.Username).SendAsync("ReceiveEncryptedRoomKey", encryptedKey);
                 } else {
                     throw new HubException($"User '{userName}' not found");

@@ -4,7 +4,6 @@
 @using CodeChat.Client.Components.Models
 @using CodeChat.Client.Services.Encryption
 @using CodeChat.Client.Services
-@implements IAsyncDisposable
 @inject NavigationManager Navigation
 @inject IJSRuntime _jsRuntime
 @inject ChatEncryptionService _encryptionService
@@ -13,6 +12,7 @@
 <PageTitle>@RoomName</PageTitle>
 
 <link href="css/chat.css" rel="stylesheet" />
+<script src="crypto.js"></script>
 
 <div class="chat-container">
     <!-- Sidebar -->
@@ -41,11 +41,14 @@
         </div>
 
         <div class="chat-messages" id="messageContainer">
+            <div class="status-message">
+                @status
+            </div>
             @foreach (var message in Messages)
             {
                 <!-- Decrypt message -->
                 var content = DecryptMessage(message);
-                <div>@message.Sender: @content</div>
+                <div>@message.Sender: @content.Result</div>
             }
         </div>
     </div>
@@ -70,6 +73,7 @@
     private string? messageInput;
     private string? username;
     private string? RoomID;
+    private byte[]? roomKey;
     private string? status = string.Empty;
 
 
@@ -96,17 +100,19 @@
                 return;
             }
 
-            Messages = await hubConnection.InvokeAsync<List<ChatMessage>>("RequestChatHistory", RoomName);
-            RecieveRoomKey();
-            ListenForMessages();
-
             if (Session.Username != null) {
                 username = Session.Username;
             } else {
                 Navigation.NavigateTo("/error");
                 return;
             }
-            publicKey = await _jsRuntime.InvokeAsync<byte[]>("getPublicKey", username);
+
+            publicKey = await hubConnection.InvokeAsync<byte[]>("GetUserPublicKey", username);
+
+            RecieveRoomKey();
+            Messages = await hubConnection.InvokeAsync<List<ChatMessage>>("RequestChatHistory", RoomName);
+
+            ListenForMessages();
         }
         catch (Exception ex)
         {
@@ -122,6 +128,10 @@
                 StateHasChanged();
                 if (hubConnection is not null) {
                     await hubConnection.SendAsync("AddEncryptedMessageToChatHistory", RoomID, message);
+                } else
+                {
+                    status = "Error sending message to chat history";
+                    StateHasChanged();
                 }
             });
         }
@@ -129,10 +139,10 @@
 
     private ValueTask<string> DecryptMessage(ChatMessage message) {
         // decrypt the message
-        var decryptedMessage = _jsRuntime.InvokeAsync<string>("decryptMessage", message.Content);
+        var decryptedMessage = _jsRuntime.InvokeAsync<string>("decryptMessage", message.Content, RoomID);
         return decryptedMessage;
     }
-    
+
     /* @Task RecieveRoomKey
      *
      * RecieveRoomKey is called when an encrypted room key is received from the server.
@@ -142,12 +152,14 @@
      */
     public void RecieveRoomKey() {
         if (hubConnection is not null && publicKey is not null) {
-            hubConnection.On<string, byte[], byte[]>("RecieveEncryptedRoomKey", async (roomID, encryptedKey, Iv) => {
+            hubConnection.On<byte[]>("RecieveEncryptedRoomKey", async (encryptedKey) => {
                 status = "Encrypted room key received";
                 // decrypt the room key
-                var decryptedKey = _encryptionService.DecryptMessage(encryptedKey, Iv, publicKey);
+                
+                var decryptedKey = await _jsRuntime.InvokeAsync<byte[]>("decryptRoomKey", encryptedKey);
                 // store the decrypted key in local storage
-                await _jsRuntime.InvokeVoidAsync("storeDecryptedKey", roomID, decryptedKey);
+                roomKey = decryptedKey;
+                // await _jsRuntime.InvokeVoidAsync("storeDecryptedKey", RoomID, decryptedKey);
             }); 
         }
     }
@@ -163,7 +175,7 @@
         if (hubConnection is not null && !string.IsNullOrEmpty(messageInput) && !string.IsNullOrEmpty(username))
         {
             // encrypt the message
-            var encryptedMessage = await _jsRuntime.InvokeAsync<byte[]>("encryptMessage", RoomID, messageInput);
+            var encryptedMessage = await _jsRuntime.InvokeAsync<byte[]>("encryptMessage", RoomID, messageInput, roomKey);
             var message = new ChatMessage {
                     Sender = username,
                     Content = encryptedMessage,
@@ -180,13 +192,4 @@
 
     public bool IsConnected =>
         hubConnection?.State == HubConnectionState.Connected;
-
-    public async ValueTask DisposeAsync()
-    {
-        if (hubConnection is not null)
-        {
-            await hubConnection.StopAsync();
-            await hubConnection.DisposeAsync();
-        }
-    }
 }

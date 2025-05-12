@@ -1,4 +1,5 @@
 ﻿using CodeChat.Services.Encryption;
+using System.Security.Cryptography;
 
 namespace CodeChat.Services
 {
@@ -22,10 +23,12 @@ namespace CodeChat.Services
             return key;
         }
 
-        public (byte[] CipherText, byte[] IV) EncryptPublicRoomKey(string roomKey, byte[] userPublicKey) {
+        public byte[] EncryptPublicRoomKey(byte[] roomKey, byte[] userPublicKey) {
             // Assuming the EncryptPublicRoomKey method in IRoomEncryptionService should return a byte array.
             // Adjusting the call to match the expected return type.
-            var encryptedKey = _encryptionService.EncryptMessage(roomKey, userPublicKey);
+            using RSA rsa = RSA.Create();
+            byte[] encryptedKey = rsa.Encrypt(roomKey, RSAEncryptionPadding.OaepSHA256);
+
             return encryptedKey;
         }
 

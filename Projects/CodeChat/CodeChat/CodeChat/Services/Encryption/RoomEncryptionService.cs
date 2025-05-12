@@ -22,7 +22,7 @@ namespace CodeChat.Services.Encryption
             byte[] iv;
 
             using var aes = Aes.Create();
-            aes.Key = key;
+            aes.Key = key; //set key for AES
             aes.GenerateIV(); //generate IV for messages
             iv = aes.IV;
 
