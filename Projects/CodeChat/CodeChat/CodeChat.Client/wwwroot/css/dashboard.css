@@ -1,0 +1,210 @@
+﻿/* Avengers Theme Variables */
+:root {
+    --temptress: #361A29; /* Dark background */
+    --vermilion: #D93D27; /* Iron Man red */
+    --yellow-orange: #EFA53A; /* Similar to Infinity Stone */
+    --water: #CCF4FE; /* Light text color */
+    --slate-blue: #626EDA; /* Captain America blue */
+    --purpureus: #924F9E; /* Thanos purple */
+    /* Additional UI colors */
+    --dark-bg: #1E1220; /* Darker version of Temptress */
+    --card-bg: #482436; /* Lighter version of Temptress */
+    --glow-purple: 0 0 15px rgba(146, 79, 158, 0.5);
+    --glow-blue: 0 0 15px rgba(98, 110, 218, 0.5);
+    /* Text colors */
+    --text-primary: var(--water);
+    --text-secondary: #9ADBEB;
+    /* System message */
+    --system-message: var(--slate-blue);
+    /* Sidebar and message hover */
+    --sidebar-hover: rgba(146, 79, 158, 0.3);
+    --message-hover: var(--card-bg);
+    /* Border color */
+    --border-color: rgba(146, 79, 158, 0.3);
+    /* Input background */
+    --input-bg: rgba(54, 26, 41, 0.7);
+    /* Hover states */
+    --hover-red: #F04E35;
+    --hover-blue: #7A84E8;
+    /* Spacing */
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    /* Shadows */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+    --shadow-md: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23);
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap');
+
+/* Global resets */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+.autocomplete-suggestions {
+    position: absolute;
+    background: white;
+    border: 1px solid #ccc;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    max-height: 150px;
+    overflow-y: auto;
+    z-index: 1000;
+}
+
+.autocomplete-suggestions li {
+    padding: 8px;
+    cursor: pointer;
+}
+
+.autocomplete-suggestions li:hover {
+    background-color: #f0f0f0;
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    min-width: 300px;
+    max-width: 90%;
+    position: relative;
+}
+
+.create-room-form input,
+.create-room-form button {
+    display: block;
+    margin: 0.5rem 0;
+    width: 100%;
+}
+
+
+/* Sidebar */
+.sidebar {
+    width: 240px;
+    background: linear-gradient(180deg, var(--temptress), var(--dark-bg));
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--shadow-sm);
+    height: 100vh;
+}
+
+.sidebar-header {
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 1.1rem;
+    background-color: var(--dark-bg);
+}
+
+.create-room-button {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: 4px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+}
+
+    .create-room-button:hover {
+        background-color: var(--hover-blue);
+        box-shadow: var(--glow-blue), var(--shadow-md);
+        transform: translateY(-2px);
+    }
+
+    .create-room-button:active {
+        transform: translateY(0);
+    }
+
+.sidebar-section {
+    margin-top: 1rem;
+}
+
+.sidebar-section h3 {
+    margin-bottom: 0.5rem;
+}
+
+.sidebar-section ul {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.sidebar-section li {
+    margin-bottom: 0.3rem;
+}
+
+.sidebar-section a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.sidebar-section a:hover {
+    text-decoration: underline;
+}
+
+.layout-container {
+    display: flex;
+    height: 100vh;
+}
+
+.sidebar {
+    width: 250px;
+    padding: 1rem;
+    background-color: #f7f7f7;
+    border-right: 1px solid #ddd;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.main-content {
+    flex: 1;
+    padding: 1.5rem;
+    overflow-y: auto;
+}
+
+/* Additional responsive adjustments */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 200px;
+    }
+
+    .chat-input-bar {
+        left: 200px;
+    }
+}
+
+@media (max-width: 576px) {
+    .message {
+        max-width: 95%;
+    }
+}
+
+

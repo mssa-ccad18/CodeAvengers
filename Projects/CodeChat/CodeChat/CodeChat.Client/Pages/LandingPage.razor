@@ -1,13 +1,17 @@
 ﻿@page "/"
 @rendermode InteractiveWebAssembly
-
 @layout Layout.LoginLayout
 @using Microsoft.AspNetCore.SignalR.Client
 @using System.Diagnostics
-
 @using CodeChat.Client.Components.Models
+@using CodeChat.Client.Services
 @inject NavigationManager Navigation
+@inject UserSessionService Session
 @implements IAsyncDisposable
+
+@* injects for error handling and status message update from ChatHub.cs> *@
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
 
 <PageTitle>CodeChat - Connect with Developers</PageTitle>
 <link href="css/home.css" rel="stylesheet" />
@@ -38,11 +42,6 @@
                     <a href="#">Forgot password?</a>
                 </div>
             </div>
-            @* <div class="login-status" @disabled="@(statusGood)"> *@
-            @*     @if (!statusGood) { *@
-            @*         <p>@status</p> *@
-            @*     } *@
-            @* </div> *@
         </div>
     </div>
 
@@ -65,7 +64,6 @@
 @code {
     private string? username;
     private string? password;
-    private bool statusGood = true;
     private string status = string.Empty;
     private HubConnection? connection;
 
@@ -88,50 +86,63 @@
             .WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10) })
             .Build();
 
+        connection.On<string>("AccountCreationFailed", (message) =>
+                {
+                    status = message;
+                    StateHasChanged();
+                });
+
+        connection.On<string>("AccountCreationSuccess", (message) =>
+        {
+            status = message;
+            StateHasChanged();
+        });
+
         await connection.StartAsync();
     }
 
-    private async Task CreateNewAccount()
+    private void CreateNewAccount()
     {
         await Task.Delay(500);
         Navigation.NavigateTo("/create-account");
     }
 
     public async Task AuthenticateUser() {
+
         if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password)) {
             return;
         }
+
         if (connection is not null) {
             if (connection.State != HubConnectionState.Connected) {
-                statusGood = false;
                 status = "Error: Connection not established. Please refresh the page.";
                 return;
             }
+
             var isAuthenticated = await connection.InvokeAsync<bool>("AuthenticateUser", username, password);
 
             if (isAuthenticated) {
-                statusGood = true;
                 status = "Success: User authenticated.";
-                await UserAuthenticated();
+                await Session.SetUserSession(username);
+                Navigation.NavigateTo($"/dashboard/{username}");
             } else {
-                statusGood = false;
                 status = "Error: Invalid username or password.";
-                await UserNotAuthenticated();
+                UserNotAuthenticated();
             }
         }
     }
 
-    public async Task UserNotAuthenticated()
+
+    public void UserNotAuthenticated()
     {
         await Task.Delay(500);
         Navigation.NavigateTo("/create-account");
     }
 
-    public async Task UserAuthenticated() {
-        // Handle user authentication success
-        // Redirect to the chat page or show a success message
-        await Task.Delay(500);
-        Navigation.NavigateTo("/chat");
+    public void UserAuthenticated()
+    {
+        AppContext.SetData("username", username);
+        Navigation.NavigateTo($"/dashboard/{username}");
     }
 
     public bool IsConnected =>

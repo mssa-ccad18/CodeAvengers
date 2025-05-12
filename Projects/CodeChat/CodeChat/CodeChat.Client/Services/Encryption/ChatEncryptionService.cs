@@ -1,23 +1,12 @@
-﻿using System;
-using System.IO;
-using System.Security.Cryptography;
-using System.Text;
-using CodeChat.Services.Interfaces;
+﻿using System.Security.Cryptography;
 
-namespace CodeChat.Services.Encryption
+namespace CodeChat.Client.Services.Encryption
 {
-    public class RoomEncryptionService  
+    public class ChatEncryptionService
     {
-        public byte[] GenerateRoomKey()
-        {
-            using var aes = Aes.Create();
-            aes.KeySize = 256;
-            aes.GenerateKey();
-            return aes.Key;
-        }
 
         public (byte[] CipherText, byte[] IV) EncryptMessage(string message, byte[] key) //method 2: EncryptMessage(encrypts PT, returns CT and IV sep) 
-        {
+{
             byte[] cipherText;
             byte[] iv;
 
@@ -39,8 +28,7 @@ namespace CodeChat.Services.Encryption
 
         }
 
-        public string DecryptMessage(byte[] cipherText, byte[] iv, byte[] key)
-        {
+        public string DecryptMessage(byte[] cipherText, byte[] iv, byte[] key) {
             using var aes = Aes.Create();
             aes.Key = key;
             aes.IV = iv;
@@ -51,11 +39,5 @@ namespace CodeChat.Services.Encryption
             using var sr = new StreamReader(cs);
             return sr.ReadToEnd();
         }
-
-
-
     }
-
-
-
 }
