@@ -37,6 +37,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Change Directory
+        run: cd ./Projects/CodeChat/CodeChat
       - uses: actions/checkout@v4
 
       - name: Set up .NET Core
