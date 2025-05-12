@@ -41,6 +41,13 @@
                 <div class="forgot-password">
                     <a href="#">Forgot password?</a>
                 </div>
+
+                <div class="status-message">
+                    @status
+                </div>
+
+
+
             </div>
         </div>
     </div>
@@ -86,13 +93,13 @@
             .WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10) })
             .Build();
 
-        connection.On<string>("AccountCreationFailed", (message) =>
-                {
-                    status = message;
-                    StateHasChanged();
-                });
+        connection.On<string>("AccountAuthFailed", (message) =>
+        {
+            status = message;
+            StateHasChanged();
+        });
 
-        connection.On<string>("AccountCreationSuccess", (message) =>
+        connection.On<string>("AccountAuthSuccess", (message) =>
         {
             status = message;
             StateHasChanged();
@@ -108,10 +115,6 @@
 
     public async Task AuthenticateUser() {
 
-        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password)) {
-            return;
-        }
-
         if (connection is not null) {
             if (connection.State != HubConnectionState.Connected) {
                 status = "Error: Connection not established. Please refresh the page.";
@@ -121,21 +124,20 @@
             var isAuthenticated = await connection.InvokeAsync<bool>("AuthenticateUser", username, password);
 
             if (isAuthenticated) {
-                status = "Success: User authenticated.";
                 await Session.SetUserSession(username);
                 Navigation.NavigateTo($"/dashboard/{username}");
-            } else {
-                status = "Error: Invalid username or password.";
-                UserNotAuthenticated();
+            } 
+            else {
+                return;
             }
         }
     }
 
 
-    public void UserNotAuthenticated()
-    {
-        Navigation.NavigateTo("/create-account");
-    }
+   //public void UserNotAuthenticated()
+   //{
+   //    Navigation.NavigateTo("/create-account");
+   //}
 
     public void UserAuthenticated()
     {
@@ -153,5 +155,28 @@
             await connection.DisposeAsync();
         }
     }
+
+    //private async Task HandleValidSubmit()
+    //{
+    //    // handles various account creation errors encountered from ChatHub.cs methods then uptates status
+    //    var hubConnection = new HubConnectionBuilder()
+    //        .WithUrl(NavigationManager.ToAbsoluteUri("/chathub"))
+    //        .Build();
+    //
+    //    await hubConnection.StartAsync();
+    //
+    //    hubConnection.On<string>("AccountCreationFailed", (message) =>
+    //    {
+    //        status = message;
+    //        StateHasChanged();
+    //    });
+    //
+    //    hubConnection.On<string>("AccountCreationSuccess", (message) =>
+    //    {
+    //        status = message;
+    //    });
+    //}
+
+
 
 }
