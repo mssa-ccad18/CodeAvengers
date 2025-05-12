@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text.Json;
-using System.Threading.Tasks;
-using CodeChat.Services.Encryption;
+﻿using CodeChat.Services.Encryption;
 
 namespace CodeChat.Services
 {

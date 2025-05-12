@@ -7,14 +7,11 @@
  */
 using CodeChat.Data;
 using Microsoft.AspNetCore.SignalR;
-using System.Threading.Tasks;
 using CodeChat.Client.Components.Models;
-using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using CodeChat.Services;
 using CodeChat.Services.Encryption;
-
 
 namespace CodeChat.Hubs;
 
@@ -64,32 +61,57 @@ public class ChatHub : Hub
      * @param email: the email of the user
      * @remarks: Key Pair is generated in the user class
      */
-    public async Task<bool> CreateUser(string username, string password, string email, byte[] publicKey) {
+    public async Task<bool> CreateUser(string username, string password, string verifyPassword, string email, byte[] publicKey) {
         // attempt to add the user to the database
-        try {
-            _db.Users.Add(new User { Username = username, Password = password, Email = email, PublicKey = publicKey });
-            await _db.SaveChangesAsync();
-        } catch (Exception ex) {
-            return false; // handle the exception
+        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(email)) {
+
+            await Clients.Caller.SendAsync("AccountCreationFailed", "Username, password, and email are required.");
+            return false;
+        } else if (username.Length < 3 || username.Length > 20 || !username.All(char.IsLetterOrDigit)) {
+            await Clients.Caller.SendAsync("AccountCreationFailed", "Username must be between 3 and 20 characters and contain only letters and digits.");
+            return false;
+
+        } else if (password != verifyPassword) {
+            await Clients.Caller.SendAsync("AccountCreationFailed", "Passwords do not match");
+            return false;
+        } else if (!System.Text.RegularExpressions.Regex.IsMatch(email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$")) {
+            await Clients.Caller.SendAsync("AccountCreationFailed", "Invalid email format.");
+            return false;
+        } else {
+
+            try {
+                _db.Users.Add(new User { Username = username, Password = password, Email = email, PublicKey = publicKey });
+                await _db.SaveChangesAsync();
+
+                if (await _db.Users.AnyAsync(u => u.Username == username)) {
+                    await Clients.Caller.SendAsync("AccountCreationFailed", $"Username '{username}' is already taken.");
+                    return false;
+                }
+                else if (await _db.Users.AnyAsync(u => u.Email == email)) {
+                    await Clients.Caller.SendAsync("AccountCreationFailed", $"Email '{email}' already has a registered account.");
+                    return false;
+                } else { 
+
+
+
+                    // Disabled for ease during testing 
+                    //if (password.Length < 8 || !password.Any(char.IsUpper) || !password.Any(char.IsLower) || !password.Any(char.IsDigit))
+                    //{
+                    //    await Clients.Caller.SendAsync("AccountCreationFailed", "Password must be at least 8 characters long, contain at least one uppercase letter, one lowercase letter, and one digit.");
+                    //    return false;
+                    //}
+
+                    // user created successfully
+                    await Clients.Caller.SendAsync("AccountCreationSuccess", "Account created successfully! Redirecting to Homepage for login...");
+                    return true;
+                }
+            } catch (Exception ex) {
+                await Clients.Caller.SendAsync("AccountCreationFailed", $"Error creating user: {ex.Message}");
+                return false; // handle the exception
+            }
         }
-        return true; // user created successfully
-            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(email)) {
+    }
 
-                await Clients.Caller.SendAsync("AccountCreationFailed", "Username, password, and email are required.");
-                return false;
-            }
-
-            if (username.Length < 3 || username.Length > 20 || !username.All(char.IsLetterOrDigit))
-            {
-                await Clients.Caller.SendAsync("AccountCreationFailed", "Username must be between 3 and 20 characters and contain only letters and digits.");
-                return false;
-            }
-
-            if (await _db.Users.AnyAsync(u => u.Username == username)) {
-
-                await Clients.Caller.SendAsync("AccountCreationFailed", $"Username '{username}' is already taken.");
-                return false;
-            }
 
     /* @method CheckUsername
      * 
@@ -99,52 +121,6 @@ public class ChatHub : Hub
     public async Task<bool> CheckUsername(string username) {
         var userExists = await _db.Users.AnyAsync(u => u.Username == username);
         return userExists;
-    }
-
-    /* @method CheckEmail
-     * 
-     * @description: checks if an email already exists in the database
-     * @param email: the email to check
-     */
-    public async Task<bool> CheckEmail(string email) {
-        var emailExists = await _db.Users.AnyAsync(u => u.Email == email);
-        return emailExists;
-            if (await _db.Users.AnyAsync(u => u.Email == email))
-            {
-                await Clients.Caller.SendAsync("AccountCreationFailed", $"Email '{email}' already has a registered account.");
-                return false;
-            }
-
-            if (!System.Text.RegularExpressions.Regex.IsMatch(email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
-            {
-                await Clients.Caller.SendAsync("AccountCreationFailed", "Invalid email format.");
-                return false;
-            }
-
-            // Disabled for ease during testing 
-            //if (password.Length < 8 || !password.Any(char.IsUpper) || !password.Any(char.IsLower) || !password.Any(char.IsDigit))
-            //{
-            //    await Clients.Caller.SendAsync("AccountCreationFailed", "Password must be at least 8 characters long, contain at least one uppercase letter, one lowercase letter, and one digit.");
-            //    return false;
-            //}
-
-            if(password != verifyPassword)
-            {
-                await Clients.Caller.SendAsync("AccountCreationFailed", "Passwords do not match");
-                return false;
-            }
-
-            var user = new User { Username = username, Password = password, Email = email };
-
-            _db.Users.Add(user);
-            await _db.SaveChangesAsync();
-            await Clients.Caller.SendAsync("AccountCreationSuccess", "Account created successfully! Redirecting to Homepage for login...");
-            return true;
-            } 
-        catch (Exception ex) {
-            await Clients.Caller.SendAsync("AccountCreationFailed", $"Error creating user: {ex.Message}");
-            return false;
-        }
     }
 
     /* @method GetUsers
@@ -315,11 +291,8 @@ public class ChatHub : Hub
             await Clients.Caller.SendAsync("AccountCreationFailed", "Invalid username or password.");
             return false;
         }
-
-
-
-
     }
-
 }
+
+
 

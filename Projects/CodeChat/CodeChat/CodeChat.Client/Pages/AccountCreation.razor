@@ -80,13 +80,6 @@
 
     private async Task CreateAccount()
     {
-        // check if passwords match
-        // if (password != verifyPassword) {
-        //     status = "Error: Passwords do not match.";
-        //     return;
-        // }
-
-
         if (connection is not null) // check if there is a connection to the hub
         {
             if (connection.State != HubConnectionState.Connected)
@@ -107,7 +100,7 @@
                 status = "Error: Public key generation failed.";
                 return;
             }
-            var userCreated = await connection.InvokeAsync<bool>("CreateUser", username, password, email, publicKey);
+            var userCreated = await connection.InvokeAsync<bool>("CreateUser", username, password, verifyPassword, email, publicKey);
             await Task.Delay(1000);
             if (userCreated) {
                 status = "Account created successfully!";
