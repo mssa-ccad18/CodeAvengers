@@ -76,6 +76,23 @@ body {
         z-index: 1000;
     }
 
+/*chat message container*/
+.chat-messages-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: left;
+    align-items: center;
+    padding: var(--spacing-lg);
+    background-color: var(--card-bg);
+    border-radius: 8px;
+    box-shadow: var(--shadow-md);
+    margin: var(--spacing-lg) auto;
+    max-width: 800px;
+    width: 100%;
+}
+
+
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
     width: 8px;

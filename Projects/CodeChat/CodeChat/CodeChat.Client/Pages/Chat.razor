@@ -4,15 +4,17 @@
 @using CodeChat.Client.Components.Models
 @using CodeChat.Client.Services.Encryption
 @using CodeChat.Client.Services
-@implements IAsyncDisposable
 @inject NavigationManager Navigation
 @inject IJSRuntime _jsRuntime
 @inject ChatEncryptionService _encryptionService
 @inject UserSessionService Session
 
 <PageTitle>@RoomName</PageTitle>
+<head>
+    <link href="css/chat.css" rel="stylesheet" />
+    <script src="crypto.js"></script>
+</head>
 
-<link href="css/chat.css" rel="stylesheet" />
 
 <div class="chat-container">
     <!-- Sidebar -->
@@ -23,14 +25,14 @@
         <!-- User list -->
         <div class="user-list">
             <div class="user-item user-owner">
-                <span>Owner</span>
+                <span>@RoomOwner</span>
             </div>
-            <div class="user-item">
-                <span>User 1</span>
-            </div>
-            <div class="user-item">
-                <span>User 2</span>
-            </div>
+            @foreach (var user in userList)
+            {
+                <div class="user-item">
+                    <span>@user</span>
+                </div>
+            }
         </div>
     </div>
 
@@ -39,13 +41,17 @@
         <div class="chat-header">
             <span class="room-name">Room Name</span>
         </div>
-
         <div class="chat-messages" id="messageContainer">
+             <div class="status-message"> 
+                 <!-- output each status update --> 
+                 @foreach (var statusItem in statusLog) 
+                 { 
+                     <div>@statusItem</div> 
+                 } 
+             </div>
             @foreach (var message in Messages)
             {
-                <!-- Decrypt message -->
-                var content = DecryptMessage(message);
-                <div>@message.Sender: @content</div>
+                <div>@message.Sender: @GetDecryptedMessageContent(message)</div>
             }
         </div>
     </div>
@@ -63,130 +69,379 @@
     [Parameter]
     public string RoomName { get; set; } = string.Empty;
 
-
-    private HubConnection? hubConnection;
+    private HubConnection? connection;
+    private List<string> statusLog = new();
     private List<ChatMessage> Messages = new();
-    private byte[]? publicKey;
+    private List<string> userList = new();
+    private Dictionary<byte[], string> decryptedMessages = new Dictionary<byte[], string>(new ByteArrayComparer());
     private string? messageInput;
     private string? username;
+    private string? RoomOwner;
     private string? RoomID;
-    private string? status = string.Empty;
+    private string? status = "current status";
+    // Utility class to compare byte arrays in dictionary
+    private class ByteArrayComparer : IEqualityComparer<byte[]>
+    {
+        public bool Equals(byte[]? x, byte[]? y)
+        {
+            if (x == null || y == null)
+                return x == y;
 
+            if (x.Length != y.Length)
+                return false;
+
+            for (int i = 0; i < x.Length; i++)
+            {
+                if (x[i] != y[i])
+                    return false;
+            }
+
+            return true;
+        }
+
+        public int GetHashCode(byte[] obj)
+        {
+            if (obj == null)
+                return 0;
+
+            int hash = 17;
+            foreach (var b in obj)
+            {
+                hash = hash * 31 + b;
+            }
+            return hash;
+        }
+    }
 
     protected override async Task OnInitializedAsync()
-    {
-        try 
-        {
-            hubConnection = new HubConnectionBuilder()
-                .WithUrl(Navigation.ToAbsoluteUri("/chathub"))
-                .WithAutomaticReconnect()
-                .Build();
+    {   
+        // query the url for username
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        username = query["username"];
+        // Initialize SignalR connection
+        await InitializeSignalR();
 
-            hubConnection.Closed += async (error) =>
-            {
-                await Task.Delay(new Random().Next(0, 5) * 1000);
-                await hubConnection.StartAsync();
-            };
-
-            await hubConnection.StartAsync();
-
-            RoomID = await hubConnection.InvokeAsync<string>("ValidateRoom", RoomName);
-            if (RoomID == null) {
-                Navigation.NavigateTo("/error");
-                return;
-            }
-
-            Messages = await hubConnection.InvokeAsync<List<ChatMessage>>("RequestChatHistory", RoomName);
-            RecieveRoomKey();
-            ListenForMessages();
-
-            if (Session.Username != null) {
-                username = Session.Username;
-            } else {
-                Navigation.NavigateTo("/error");
-                return;
-            }
-            publicKey = await _jsRuntime.InvokeAsync<byte[]>("getPublicKey", username);
-        }
-        catch (Exception ex)
-        {
-            status = $"Error: {ex.Message}";
-        }
+        // Decrypt any messages that were loaded
+        await DecryptAllMessages();
     }
 
-    private void ListenForMessages() {
-        if (hubConnection is not null) {
-            hubConnection.On<ChatMessage>("ReceiveMessage", async (message) => {
-                status = "Message received";
-                Messages.Add(message);
-                StateHasChanged();
-                if (hubConnection is not null) {
-                    await hubConnection.SendAsync("AddEncryptedMessageToChatHistory", RoomID, message);
+    protected override async Task OnAfterRenderAsync(bool firstRender) {
+        if (firstRender) {
+            // initialize the session
+            await Session.InitializeAsync();
+            // Check if the user is logged in
+            if (!Session.IsLoggedIn) {
+                Navigation.NavigateTo("/");
+                return;
+            }
+
+            try {
+                // Initialize SignalR and get the RoomID first
+                if (connection == null) {
+                    await InitializeSignalR();
                 }
-            });
+
+                // Make sure RoomID is set before proceeding
+                if (string.IsNullOrEmpty(RoomID)) {
+                    AddStatus("Error: Room ID not found or not initialized");
+                    return;
+                }
+
+                AddStatus("Requesting room key...");
+
+                // Request the room key from the server
+                var encryptedRoomKey = await connection.InvokeAsync<byte[]>("RequestRoomKey", username, RoomName);
+                if (encryptedRoomKey == null) {
+                    AddStatus("Error retrieving room key");
+                    return;
+                } else {
+                    AddStatus($"Room key retrieved for room {RoomID}, decrypting...");
+                }
+
+                // Note: Debug the key length
+                AddStatus($"Encrypted room key length: {encryptedRoomKey.Length}");
+                AddStatus($"RoomID for decryption: {RoomID}");
+
+                // decrypt the room key - pass both the encrypted key and the roomID
+                var decryptedRoomKey = await _jsRuntime.InvokeAsync<object>("decryptRoomKey", encryptedRoomKey, RoomID);
+                if (decryptedRoomKey == null) {
+                    AddStatus("Error decrypting room key");
+                    return;
+                } else {
+                    AddStatus("Room key decrypted and stored successfully");
+                }
+
+                // Verify key storage by trying to retrieve it
+                await VerifyKeyStorage();
+
+                // Decrypt all messages now that we have the key
+                await DecryptAllMessages();
+
+                // Scroll to the bottom of the chat messages
+                var messageContainer = await _jsRuntime.InvokeAsync<IJSObjectReference>("import", "./js/scroll.js");
+                await messageContainer.InvokeVoidAsync("scrollToBottom");
+            } catch (Exception ex) {
+                AddStatus($"Error during key processing: {ex.Message}");
+                Console.WriteLine($"Exception details: {ex}");
+            }
+        }
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    private void AddStatus(string message)
+    {
+        status = message;
+        statusLog.Add(message);
+        StateHasChanged();
+    }
+
+    private async Task DecryptAllMessages()
+    {
+        if (Messages == null || Messages.Count == 0 || string.IsNullOrEmpty(RoomID))
+            return;
+
+        try {
+            foreach (var message in Messages)
+            {
+                if (message.Content != null && !decryptedMessages.ContainsKey(message.Content))
+                {
+                    try {
+                        string decryptedContent = await DecryptMessageContent(message);
+                        decryptedMessages[message.Content] = decryptedContent;
+                    }
+                    catch (Exception ex) {
+                        AddStatus($"Error decrypting message: {ex.Message}");
+                        decryptedMessages[message.Content] = "[Encrypted]";
+                    }
+                }
+            }
+            StateHasChanged();
+        }
+        catch (Exception ex) {
+            AddStatus($"Error in DecryptAllMessages: {ex.Message}");
         }
     }
 
-    private ValueTask<string> DecryptMessage(ChatMessage message) {
-        // decrypt the message
-        var decryptedMessage = _jsRuntime.InvokeAsync<string>("decryptMessage", message.Content);
-        return decryptedMessage;
+    private async Task GetRoomOwner()
+    {
+        RoomOwner = await connection.InvokeAsync<string>("SearchRoomOwner", RoomID);
     }
-    
-    /* @Task RecieveRoomKey
-     *
-     * RecieveRoomKey is called when an encrypted room key is received from the server.
-     * It decrypts the room key and stores it in the browser's local storage.
-     * @param: roomID The ID of the room for which the key is being sent.
-     * @param: encryptedKey The encrypted room key.
-     */
-    public void RecieveRoomKey() {
-        if (hubConnection is not null && publicKey is not null) {
-            hubConnection.On<string, byte[], byte[]>("RecieveEncryptedRoomKey", async (roomID, encryptedKey, Iv) => {
-                status = "Encrypted room key received";
-                // decrypt the room key
-                var decryptedKey = _encryptionService.DecryptMessage(encryptedKey, Iv, publicKey);
-                // store the decrypted key in local storage
-                await _jsRuntime.InvokeVoidAsync("storeDecryptedKey", roomID, decryptedKey);
-            }); 
+
+    private string GetDecryptedMessageContent(ChatMessage message)
+    {
+        if (message.Content == null)
+            return "[No content]";
+
+        if (decryptedMessages.TryGetValue(message.Content, out string? decryptedContent))
+            return decryptedContent;
+
+        // If we haven't decrypted it yet, queue it for decryption and show a placeholder
+        Task.Run(async () => {
+            try {
+                string content = await DecryptMessageContent(message);
+                decryptedMessages[message.Content] = content;
+                StateHasChanged();
+            }
+            catch (Exception ex) {
+                Console.WriteLine($"Error decrypting message: {ex.Message}");
+            }
+        });
+
+        return "[Decrypting...]";
+    }
+
+    private async Task<string> DecryptMessageContent(ChatMessage message)
+    {
+        if (message.Content == null)
+            return "[No content]";
+
+        try {
+            return await _jsRuntime.InvokeAsync<string>("decryptMessage", message.Content, RoomID);
+        }
+        catch (Exception ex) {
+            Console.WriteLine($"Error in DecryptMessageContent: {ex.Message}");
+            return "[Decryption failed]";
         }
     }
 
-    public async Task<byte[]> GetDecryptedRoomKey(string roomID) {
-        // get the decrypted key
-        var decryptedKey = await _jsRuntime.InvokeAsync<byte[]>("getDecryptedKey", roomID);
-        return decryptedKey;
+    private async Task VerifyKeyStorage()
+    {
+        try {
+            AddStatus("Verifying key storage...");
+
+            // Try to retrieve the key we just stored
+            var keyExists = await _jsRuntime.InvokeAsync<bool>("checkKeyExists", RoomID);
+            if (keyExists) {
+                AddStatus("Room key verified in storage");
+            } else {
+                AddStatus("Warning: No room key found in storage. Requesting a new one from the server...");
+
+                // Request the real room key from the server again
+                var encryptedRoomKey = await connection.InvokeAsync<byte[]>("RequestRoomKey", username, RoomName);
+                if (encryptedRoomKey == null) {
+                    AddStatus("Error: Failed to retrieve room key from server");
+                    return;
+                }
+
+                // Try decrypting it again
+                await _jsRuntime.InvokeAsync<object>("decryptRoomKey", encryptedRoomKey, RoomID);
+
+                // Check one more time
+                keyExists = await _jsRuntime.InvokeAsync<bool>("checkKeyExists", RoomID);
+                if (!keyExists) {
+                    AddStatus("Error: Failed to store the real room key. Chat functionality may be limited.");
+                } else {
+                    AddStatus("Room key retrieved and stored successfully");
+                }
+            }
+        }
+        catch (Exception ex) {
+            AddStatus($"Error verifying key: {ex.Message}");
+        }
+    }
+
+    private async Task InitializeSignalR() {
+        AddStatus("Initializing SignalR connection...");
+
+        var hubUrl = Navigation.ToAbsoluteUri("/chathub");
+
+        connection = new HubConnectionBuilder()
+            .WithUrl(hubUrl, options => {
+                options.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets;
+                options.SkipNegotiation = true;
+            })
+            .WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10) })
+            .Build();
+
+        connection.On<ChatMessage>("ReceiveMessage", async (message) => {
+            AddStatus("Message received");
+            Messages.Add(message);
+
+            // Decrypt the new message
+            if (message.Content != null && !decryptedMessages.ContainsKey(message.Content))
+            {
+                try {
+                    string decryptedContent = await DecryptMessageContent(message);
+                    decryptedMessages[message.Content] = decryptedContent;
+                }
+                catch (Exception ex) {
+                    AddStatus($"Error decrypting received message: {ex.Message}");
+                    decryptedMessages[message.Content] = "[Encrypted]";
+                }
+            }
+
+            await connection.SendAsync("AddEncryptedMessageToChatHistory", RoomID, message);
+        });
+
+        AddStatus("Starting connection...");
+        await connection.StartAsync();
+        AddStatus("Connection established. Validating room...");
+
+        
+
+        RoomID = await connection.InvokeAsync<string>("ValidateRoom", RoomName);
+        if (RoomID == null) {
+            AddStatus("Error: Invalid room");
+            Navigation.NavigateTo("/error");
+            return;
+        }
+
+        await GetRoomOwner();
+        
+        AddStatus($"Room validated. Room ID: {RoomID}");
+       
+        Messages = await connection.InvokeAsync<List<ChatMessage>>("RequestChatHistory", RoomName);
+        if (Messages == null) {
+            AddStatus("Error retrieving chat history");
+            return;
+        } else {
+            AddStatus("Chat history retrieved");
+        }
     }
 
     private async Task SendMessage()
     {
-        if (hubConnection is not null && !string.IsNullOrEmpty(messageInput) && !string.IsNullOrEmpty(username))
+        if (connection is not null && !string.IsNullOrEmpty(messageInput) && !string.IsNullOrEmpty(username))
         {
-            // encrypt the message
-            var encryptedMessage = await _jsRuntime.InvokeAsync<byte[]>("encryptMessage", RoomID, messageInput);
-            var message = new ChatMessage {
-                    Sender = username,
-                    Content = encryptedMessage,
-                    Timestamp = DateTime.Now
-                };
-            Messages.Add(message);
-            await hubConnection.SendAsync("DistributeMessage", RoomID,  message);
+            try {
+                AddStatus("Encrypting message...");
+                
+                // Try to get the existing room key first
+                var keyExists = await _jsRuntime.InvokeAsync<bool>("checkKeyExists", RoomID);
+                
+                if (!keyExists) {
+                    AddStatus("No encryption key found. Requesting one from the server...");
+                    
+                    try {
+                        // Request the real room key from the server
+                        var encryptedRoomKey = await connection.InvokeAsync<byte[]>("RequestRoomKey", username, RoomName);
+                        if (encryptedRoomKey == null || encryptedRoomKey.Length == 0) {
+                            AddStatus("Error: Server returned empty room key");
+                            return;
+                        }
+                        
+                        // Log the key details for debugging
+                        AddStatus($"Server returned room key with length: {encryptedRoomKey.Length}");
+                        
+                        // Decrypt and store the key
+                        await _jsRuntime.InvokeAsync<object>("decryptRoomKey", encryptedRoomKey, RoomID);
+                        
+                        // Verify the key was stored
+                        keyExists = await _jsRuntime.InvokeAsync<bool>("checkKeyExists", RoomID);
+                        if (!keyExists) {
+                            AddStatus("Error: Failed to store encryption key after decryption");
+                            return;
+                        }
             
-
-            // update the ChatHistory
-            messageInput = string.Empty;
+                        
+                    }
+                    catch (Exception ex) {
+                        AddStatus($"Error retrieving room key: {ex.Message}");
+                        AddStatus($"Error details: {ex}");
+                        return;
+                    }
+                }
+                
+                // encrypt the message
+                AddStatus("Key found. Encrypting message...");
+                
+                try {
+                    var encryptedMessage = await _jsRuntime.InvokeAsync<byte[]>("encryptMessage", RoomID, messageInput);
+                    
+                    if (encryptedMessage == null || encryptedMessage.Length == 0) {
+                        AddStatus("Error: Message encryption failed");
+                        return;
+                    }
+                    
+                    AddStatus("Sending encrypted message...");
+                    
+                    var message = new ChatMessage {
+                        Sender = username,
+                        Content = encryptedMessage,
+                        Timestamp = DateTime.Now
+                    };
+                    
+                    // Store the decrypted content immediately
+                    decryptedMessages[encryptedMessage] = messageInput;
+                    
+                    Messages.Add(message);
+                    await connection.SendAsync("AddEncryptedMessageToChatHistory", RoomID, message);
+                    messageInput = string.Empty;
+                    
+                    AddStatus("Message sent successfully");
+                }
+                catch (Exception encryptEx) {
+                    AddStatus($"Encryption error: {encryptEx.Message}");
+                    AddStatus($"Encryption error details: {encryptEx}");
+                }
+            } catch (Exception ex) {
+                AddStatus($"Error sending message: {ex.Message}");
+                AddStatus($"Send message exception details: {ex}");
+            }
         }
     }
 
     public bool IsConnected =>
-        hubConnection?.State == HubConnectionState.Connected;
-
-    public async ValueTask DisposeAsync()
-    {
-        if (hubConnection is not null)
-        {
-            await hubConnection.StopAsync();
-            await hubConnection.DisposeAsync();
-        }
-    }
+        connection?.State == HubConnectionState.Connected;
 }

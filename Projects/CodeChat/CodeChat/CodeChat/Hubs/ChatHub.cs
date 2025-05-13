@@ -36,18 +36,30 @@ public class ChatHub : Hub
      * @param message: the message to be sent
      * @param date: the date and time of the message
      */
-    public async Task DistributeEncryptedMessage(string roomID, ChatMessage message) {
-        if (_db.ChatRooms.FirstOrDefault(r => r.RoomID == roomID) == null) {
-            throw new HubException($"Room '{roomID}' not found");
-        }
-        AddEncryptedMessageToChatHistory(roomID, message);
-
-        await Clients.All.SendAsync("ReceiveMessage", message);
-    }
+    //public async Task DistributeEncryptedMessage(string roomID, ChatMessage message) {
+    //    var room = _db.ChatRooms.FirstOrDefault(r => r.RoomID == roomID);
+    //    if (room == null) {
+    //        throw new HubException($"Room '{roomID}' not found");
+    //    }
+    //    AddEncryptedMessageToChatHistory(roomID, message);
+    //    // get room userlist without the sender
+    //    var userList = room.UserList.Where(u => u != message.Sender).ToList();
+    //    // send the message to all users in the room
+    //    foreach (var user in userList) {
+    //        await Clients.User(user).SendAsync("ReceiveMessage", message);
+    //    }
+    //}
 
     public void AddEncryptedMessageToChatHistory(string roomID, ChatMessage message) {
         try {
-            _db.ChatRooms.FirstOrDefault(r => r.RoomID == roomID).ChatHistory.Add(message);
+            var room = _db.ChatRooms.FirstOrDefault(r => r.RoomID == roomID);
+            if (room != null) {
+                room.ChatHistory.Add(message);
+                _db.SaveChanges();
+                Clients.All.SendAsync("ChatHistoryUpdated", roomID, message);
+            } else {
+                throw new HubException($"Room '{roomID}' not found");
+            }
         } catch (Exception ex) {
             throw new HubException($"Error adding message to chat history: {ex.Message}");
         }
@@ -152,6 +164,15 @@ public class ChatHub : Hub
         }
     }
 
+    public async Task<string> SearchRoomOwner(string roomID) {
+        var room = await _db.ChatRooms.FirstOrDefaultAsync(r => r.RoomID == roomID);
+        if (room != null) {
+            return room.RoomOwner;
+        } else {
+            throw new HubException($"Room with ID '{roomID}' not found");
+        }
+    }
+
     public async Task RemoveUserFromRoom(byte[] roomKey, string username) {
         var room = await _db.ChatRooms.FirstOrDefaultAsync(r => r.RoomKey == roomKey);
         if (room != null) {
@@ -179,6 +200,15 @@ public class ChatHub : Hub
         }
     }
 
+    public async Task<string> ValidateRoom(string roomName) {
+        var room = await _db.ChatRooms.FirstOrDefaultAsync(r => r.RoomName == roomName);
+        if (room != null) {
+            return room.RoomID;
+        } else {
+            throw new HubException($"Room with ID '{roomName}' not found");
+        }
+    }
+
     /* @method CreateRoom
      * 
      * @description: creates a new chat room in the database, adds the users to the room,
@@ -196,26 +226,32 @@ public class ChatHub : Hub
         var room = new Room { RoomID = roomID, RoomName = roomName,  RoomKey = roomKey, RoomOwner = roomOwner, UserList = userList };
         _db.ChatRooms.Add(room);
         await _db.SaveChangesAsync(); // save the changes
+        // add the room to the user's list of chat rooms
+        //var user = await _db.Users.FirstOrDefaultAsync(u => u.Username == roomOwner);
+        //if (user == null) {
+        //    throw new HubException($"User '{roomOwner}' not found");
+        //}
+        //user.ChatRooms.Add(room.RoomName);
+        //await _db.SaveChangesAsync(); // save the changes
 
-        // verify that the room was created
-        var isAdded = await _db.ChatRooms.AnyAsync(r => r.RoomID == roomID);
-        if (isAdded && userList.Count > 0) {
-            // send the encrypted room key to the users in the userList if they exist
-            foreach (string userName in userList) {
-                var user = await _db.Users.FirstOrDefaultAsync(u => u.Username == userName);
-                if (user != null) {
-                    // convert roomKey from byte[] to string
-                    var roomKeyString = Convert.ToBase64String(roomKey);
+        // return the result
+        return await _db.ChatRooms.AnyAsync(r => r.RoomID == roomID);
+    }
 
-                    // encrypt the room key with the user's public key and then send it
-                    var encryptedKey = _roomService.EncryptPublicRoomKey(roomKeyString, user.PublicKey) ;
-                    await Clients.User(user.Username).SendAsync("ReceiveEncryptedRoomKey", encryptedKey);
-                } else {
-                    throw new HubException($"User '{userName}' not found");
-                }
-            }         
+    public async Task<byte[]> RequestRoomKey(string user, string roomName) {
+        var room = await _db.ChatRooms.FirstOrDefaultAsync(r => r.RoomName == roomName);
+        if (room != null) {
+            var userPublicKey = await _db.Users
+                .Where(u => u.Username == user)
+                .Select(u => u.PublicKey)
+                .FirstOrDefaultAsync();
+            if (userPublicKey == null) {
+                throw new HubException($"User '{user}' not found");
+            }
+            var encryptedRoomKey = _roomService.EncryptPublicRoomKey(room.RoomKey, userPublicKey);
+            return encryptedRoomKey;
         }
-        return isAdded;
+        throw new HubException($"Room '{roomName}' not found");
     }
 
     /* @method GetUserPublicKey

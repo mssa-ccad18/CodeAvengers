@@ -1,4 +1,5 @@
 ﻿using CodeChat.Services.Encryption;
+using System.Security.Cryptography;
 
 namespace CodeChat.Services
 {
@@ -22,10 +23,23 @@ namespace CodeChat.Services
             return key;
         }
 
-        public (byte[] CipherText, byte[] IV) EncryptPublicRoomKey(string roomKey, byte[] userPublicKey) {
+        public byte[] EncryptPublicRoomKey(byte[] roomKey, byte[] userPublicKey) {
             // Assuming the EncryptPublicRoomKey method in IRoomEncryptionService should return a byte array.
             // Adjusting the call to match the expected return type.
-            var encryptedKey = _encryptionService.EncryptMessage(roomKey, userPublicKey);
+            using RSA rsa = RSA.Create();
+            rsa.KeySize = 2048;
+            rsa.ImportSubjectPublicKeyInfo(userPublicKey, out _); // Import the public key
+            if (rsa.KeySize != 2048)
+                throw new InvalidOperationException("Invalid key size. Expected 2048 bits.");
+            if (roomKey.Length != 32)
+                throw new InvalidOperationException("Invalid room key size. Expected 32 bytes.");
+            if (userPublicKey.Length != 294)
+                throw new InvalidOperationException("Invalid public key size. Expected 256 bytes.");
+            // Encrypt the room key using the public key
+            // Using OAEP padding with SHA256
+            byte[] encryptedKey = rsa.Encrypt(roomKey, RSAEncryptionPadding.OaepSHA256);
+            if (encryptedKey.Length != 256)
+                throw new InvalidOperationException("Invalid encrypted key size. Expected 256 bytes.");
             return encryptedKey;
         }
 

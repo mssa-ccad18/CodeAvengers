@@ -6,11 +6,14 @@
 @using CodeChat.Client.Services
 @using CodeChat.Client.Layout
 @inject NavigationManager Navigation
+@inject UserSessionService Session
 @implements IAsyncDisposable
 
 <PageTitle>@Username's Dashboard</PageTitle>
+<head>
+    <link href="css/dashboard.css" rel="stylesheet" />
+</head>
 
-<link href="css/dashboard.css" rel="stylesheet" />
 
 <div class="layout-container">
     <aside class="sidebar">
@@ -25,7 +28,7 @@
             <ul>
                 @if (OwnedChatRooms != null && OwnedChatRooms.Count > 0) {
                     foreach (var room in OwnedChatRooms) {
-                        <li><a href=$"chat/{room}">@room</a></li>
+                        <li><a href="chat/@room">@room</a></li>
                     }
                 } else {
                     <li>No chat rooms available.</li>
@@ -38,7 +41,7 @@
             <ul>
                 @if (ChatRooms != null && ChatRooms.Count > 0) {
                     foreach (var room in ChatRooms) {
-                        <li><a href=$"chat/{room}">@room</a></li>
+                        <li><a href="chat/@room">@room</a></li>
                     }
                 } else {
                     <li>No chat rooms available.</li>
@@ -132,6 +135,15 @@
             .Build();
 
         await connection.StartAsync();
+
+        connection.On<string>("ReceiveInvite", (invite) => {
+            // Handle incoming invite
+            status = $"You have been invited to join {invite}";
+            StateHasChanged();
+        });
+
+        await GetChatRooms();
+        await GetOwnedChatRooms();
     }
 
     private void ShowModal() {
@@ -151,7 +163,7 @@
     private async Task CreateChatRoom() {
         var result = await connection.InvokeAsync<bool>("CreateRoom", Username, RoomName, Invites);
         if (result) {
-            Navigation.NavigateTo($"/chat/{RoomName}");
+            Navigation.NavigateTo($"/chat/{RoomName}?username={Username}");
         } else {
             status = $"Failed to create room, a room with that name already exists";
         }
