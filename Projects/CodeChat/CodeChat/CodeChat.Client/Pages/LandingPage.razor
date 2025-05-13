@@ -14,8 +14,9 @@
 @inject IJSRuntime JSRuntime
 
 <PageTitle>CodeChat - Connect with Developers</PageTitle>
-<link href="css/home.css" rel="stylesheet" />
-
+<head>
+    <link href="css/home.css" rel="stylesheet" />
+</head>
 <div class="landing-container">
     <div class="landing-content">
         <div class="landing-info">
@@ -122,7 +123,7 @@
 
             if (isAuthenticated) {
                 status = "Success: User authenticated.";
-                await Session.SetUserSession(username);
+                await Session.SetUserSession(username);                
                 Navigation.NavigateTo($"/dashboard/{username}");
             } else {
                 status = "Error: Invalid username or password.";

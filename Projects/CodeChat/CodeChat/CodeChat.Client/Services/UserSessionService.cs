@@ -20,7 +20,8 @@ namespace CodeChat.Client.Services
         public async Task InitializeAsync()
         {
             Username = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", USERNAME_KEY);
-            IsLoggedIn = await _jsRuntime.InvokeAsync<bool>("localStorage.getItem", IS_LOGGED_IN_KEY);
+            var isLoggedInString = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", IS_LOGGED_IN_KEY);
+            IsLoggedIn = bool.TryParse(isLoggedInString, out var result) && result;
         }
 
         public async Task SetUserSession(string username)
