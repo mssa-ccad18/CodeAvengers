@@ -254,6 +254,14 @@ public class ChatHub : Hub
         throw new HubException($"Room '{roomName}' not found");
     }
 
+    public async Task<bool> UpdateUserPublicKey(string username, byte[] newPublicKey) {
+         var user = await _db.Users.FirstOrDefaultAsync(u => u.Username == username);
+         if (user == null) return false;
+         user.PublicKey = newPublicKey;
+         await _db.SaveChangesAsync();
+         return true;
+     }
+
     /* @method GetUserPublicKey
      * 
      * @description: gets the public key of a user from the database
