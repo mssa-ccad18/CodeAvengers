@@ -95,19 +95,12 @@ async function decryptRoomKey(encryptedRoomKey, roomID) {
     }
     
     try {
-        // Check if we already have a key for this room
-        const existingKey = await getDecryptedRoomKey(roomID);
-        if (existingKey) {
-            console.log(`Key already exists for room ${roomID}. Using existing key.`);
-            return existingKey;
-        }
-        
-        console.log(`No existing key found for room ${roomID}. Decrypting from server key.`);
         
         // First try to get our private key
-        const privateKey = await getPrivateKey();
+        let privateKey = await getPrivateKey();
         if (!privateKey) {
-            console.error("Private key not found in IndexedDB");
+            await generateKeyPair();
+            privateKey = await getPrivateKey();
         }
         
         // Get the private key
@@ -121,44 +114,11 @@ async function decryptRoomKey(encryptedRoomKey, roomID) {
         // We'll do thorough diagnostics to understand the issue
         let encryptedData;
         
-        // Check if we have a string (possibly base64 encoded)
-        if (typeof encryptedRoomKey === 'string') {
-            console.log("Encrypted key is a string, converting to binary...");
-            // Try to convert from base64 if it looks like base64
-            try {
-                // Convert base64 to binary
-                const binaryString = atob(encryptedRoomKey);
-                encryptedData = new Uint8Array(binaryString.length);
-                for (let i = 0; i < binaryString.length; i++) {
-                    encryptedData[i] = binaryString.charCodeAt(i);
-                }
-                console.log("Successfully converted base64 string to binary data");
-            } catch (e) {
-                console.warn("Not a valid base64 string, treating as binary string");
-                // If not base64, treat as binary string
-                encryptedData = new Uint8Array(encryptedRoomKey.length);
-                for (let i = 0; i < encryptedRoomKey.length; i++) {
-                    encryptedData[i] = encryptedRoomKey.charCodeAt(i);
-                }
-            }
-        } else if (encryptedRoomKey instanceof Uint8Array) {
-            // Already a Uint8Array
-            encryptedData = encryptedRoomKey;
-            console.log("Encrypted key is already a Uint8Array");
-        } else if (encryptedRoomKey instanceof ArrayBuffer) {
-            // Convert ArrayBuffer to Uint8Array
-            encryptedData = new Uint8Array(encryptedRoomKey);
-            console.log("Converted ArrayBuffer to Uint8Array");
-        } else {
-            // Try to handle as array-like object
-            encryptedData = new Uint8Array(encryptedRoomKey);
-            console.log("Converted array-like object to Uint8Array");
-        }
-        
-        // Log detailed information about the encrypted data
-        console.log(`Prepared encrypted data for decryption, length: ${encryptedData.byteLength}`);
-        console.log(`First 16 bytes: ${Array.from(encryptedData.slice(0, 16)).join(', ')}`);
-        console.log(`Last 16 bytes: ${Array.from(encryptedData.slice(-16)).join(', ')}`);
+        // convert the encrypted room key to a Uint8Array
+        encryptedData = new Uint8Array(encryptedRoomKey);
+        console.log(`Encrypted data length: ${encryptedData.length}`);
+        console.log(`Encrypted data first 16 bytes: ${Array.from(encryptedData.slice(0, 16)).join(', ')}`);
+        console.log(`Encrypted data last 16 bytes: ${Array.from(encryptedData.slice(-16)).join(', ')}`);
         
         // Log detailed information about the private key
         console.log(`Private key algorithm: ${privateKey.algorithm.name}`);
@@ -243,14 +203,16 @@ async function storeDecryptedKey(roomID, decryptedKey) {
         throw new Error("Room ID is required to store the key.");
     }
     
-    const dbRequest = indexedDB.open("KeyStorage", 1);
+    let dbUpgraded = false;
+    const dbRequest = indexedDB.open("KeyStorage", 2);
     if (!dbRequest) {
         throw new Error("Failed to open IndexedDB.");
     }
     
-    dbRequest.onupgradeneeded = (event) => {
+    dbRequest.onupgradeneeded = (event) => {    
         console.log("Creating or upgrading database");
         const db = event.target.result;
+        dbUpgraded = true;
         if (!db.objectStoreNames.contains("keys")) {
             db.createObjectStore("keys", { keyPath: "id" });
         }
@@ -258,7 +220,14 @@ async function storeDecryptedKey(roomID, decryptedKey) {
     
     try {
         const db = await new Promise((resolve, reject) => {
-            dbRequest.onsuccess = (event) => resolve(event.target.result);
+            dbRequest.onsuccess = async (event) => {
+                if (dbUpgraded) {
+                    console.log("Database upgraded, generating new key pair");
+                    await generateKeyPair();
+                    console.log("Key pair generated and stored successfully");
+                }
+                resolve(event.target.result);
+            };
             dbRequest.onerror = (event) => {
                 console.error("Error opening database:", event.target.error);
                 reject(event.target.error);
@@ -310,20 +279,27 @@ async function getDecryptedRoomKey(roomID) {
         throw new Error("Room ID is required to retrieve the key.");
     }
     
-    const dbRequest = indexedDB.open("KeyStorage", 1);
+    let dbUpgraded = false;
+    const dbRequest = indexedDB.open("KeyStorage", 2);
     if (!dbRequest) {
         throw new Error("Failed to open IndexedDB.");
     }
     
     try {
         const db = await new Promise((resolve, reject) => {
-            dbRequest.onsuccess = (event) => resolve(event.target.result);
+            dbRequest.onsuccess = async (event) => {
+                if (dbUpgraded) {
+                    console.log("Database upgraded, generating new key pair");
+                    await generateKeyPair();
+                    console.log("Key pair generated and stored successfully");
+                }
+                resolve(event.target.result);
+            };
             dbRequest.onerror = (event) => {
                 console.error("Error opening database:", event.target.error);
                 reject(event.target.error);
             };
         });
-        
         const transaction = db.transaction(["keys"], "readonly");
         const store = transaction.objectStore("keys");
         
@@ -386,12 +362,6 @@ async function generateKeyPair() {
             hash: { name: "SHA-256" },  // Use SHA-256 for better security
         };
         
-        console.log(`DIAGNOSTICS: Key generation parameters:`);
-        console.log(`- Algorithm: ${rsaParams.name}`);
-        console.log(`- Modulus Length: ${rsaParams.modulusLength} bits`);
-        console.log(`- Hash: ${rsaParams.hash.name}`);
-        console.log(`- Public Exponent: ${Array.from(rsaParams.publicExponent).join(', ')}`);
-        
         // Generate a new key pair with proper parameters
         console.log("Starting key generation...");
         const keyPair = await window.crypto.subtle.generateKey(
@@ -399,12 +369,6 @@ async function generateKeyPair() {
             true, // Allow export of keys
             ["encrypt", "decrypt"]
         );
-        
-        console.log("RSA key pair generated successfully");
-        console.log(`Private key algorithm: ${keyPair.privateKey.algorithm.name}`);
-        console.log(`Private key modulus length: ${keyPair.privateKey.algorithm.modulusLength}`);
-        console.log(`Private key hash: ${keyPair.privateKey.algorithm.hash.name}`);
-        console.log(`Private key usages: ${keyPair.privateKey.usages.join(', ')}`);
         
         // Store the private key in IndexedDB
         await savePrivateKey(keyPair.privateKey);
@@ -433,7 +397,8 @@ async function generateKeyPair() {
 async function savePrivateKey(privateKey) {
     console.log("Saving private key to IndexedDB");
     
-    const dbRequest = indexedDB.open("KeyStorage", 1);
+    let dbUpgraded = false;
+    const dbRequest = indexedDB.open("KeyStorage", 2);
     if (!dbRequest) {
         console.error("Failed to open IndexedDB for saving private key");
         throw new Error("Failed to open IndexedDB.");
@@ -443,13 +408,21 @@ async function savePrivateKey(privateKey) {
         dbRequest.onupgradeneeded = (event) => {
             console.log("Creating or upgrading database for storing private key");
             const db = event.target.result;
+            dbUpgraded = true;
             if (!db.objectStoreNames.contains("keys")) {
                 db.createObjectStore("keys", { keyPath: "id" });
             }
         };
         
         const db = await new Promise((resolve, reject) => {
-            dbRequest.onsuccess = (event) => resolve(event.target.result);
+            dbRequest.onsuccess = async (event) => {
+                if (dbUpgraded) {
+                    console.log("Database upgraded, generating new key pair");
+                    await generateKeyPair();
+                    console.log("Key pair generated and stored successfully");
+                }
+                resolve(event.target.result);
+            };
             dbRequest.onerror = (event) => {
                 console.error("Error opening database for storing private key:", event.target.error);
                 reject(event.target.error);
@@ -496,8 +469,8 @@ async function savePrivateKey(privateKey) {
 // Retrieve the private key from IndexedDB
 async function getPrivateKey() {
     console.log("Attempting to retrieve private key from IndexedDB");
-    
-    const dbRequest = indexedDB.open("KeyStorage", 1);
+    let dbUpgraded = false;
+    const dbRequest = indexedDB.open("KeyStorage", 2);
     if (!dbRequest) {
         console.error("Failed to open IndexedDB for private key retrieval");
         throw new Error("Failed to open IndexedDB.");
@@ -508,13 +481,22 @@ async function getPrivateKey() {
         dbRequest.onupgradeneeded = (event) => {
             console.log("Creating or upgrading database for private key");
             const db = event.target.result;
+            dbUpgraded = true;
             if (!db.objectStoreNames.contains("keys")) {
                 db.createObjectStore("keys", { keyPath: "id" });
             }
         };
-        
+        // get the private key
         const db = await new Promise((resolve, reject) => {
-            dbRequest.onsuccess = (event) => resolve(event.target.result);
+            dbRequest.onsuccess = async (event) => {
+                if (dbUpgraded) {
+                    console.log("Database upgraded, generating new key pair");
+                    await generateKeyPair();
+                    console.log("Key pair generated and stored successfully");
+                }
+                
+                resolve(event.target.result);
+            };
             dbRequest.onerror = (event) => {
                 console.error("Error opening database for private key:", event.target.error);
                 reject(event.target.error);
@@ -556,6 +538,37 @@ async function getPrivateKey() {
         console.error("Error in getPrivateKey:", error);
         throw error;
     }
+}
+
+async function deleteKeyPair() {
+    return new Promise((resolve, reject) => {
+        const dbRequest = indexedDB.open("KeyStorage", 2);
+        dbRequest.onsuccess = (event) => {
+            const db = event.target.result;
+            const transaction = db.transaction(["keys"], "readwrite");
+            const store = transaction.objectStore("keys");
+            const deleteRequest = store.delete("privateKey");
+            deleteRequest.onsuccess = () => {
+                console.log("Private key deleted from IndexedDB.");
+                resolve();
+            };
+            deleteRequest.onerror = (event) => {
+                console.error("Error deleting private key:", event.target.error);
+                reject(event.target.error);
+            };
+        };
+        dbRequest.onerror = (event) => {
+            console.error("Error opening database:", event.target.error);
+            reject(event.target.error);
+        };
+    });
+}
+
+async function resetKeyPair() {
+    await deleteKeyPair();
+    var publicKey = await generateKeyPair();
+    console.log("Key pair has been reset.");
+    return publicKey;
 }
 
 // Check if a key exists for a given room ID
