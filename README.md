@@ -38,7 +38,7 @@
 | <img src="https://github.com/mssa-ccad18/CodeAvengers/blob/main/Assets/isaac-Spiderman-Superman-Coder.png" width="150"> | **Isaac** - Bio:<br><br>Master of web-slinging code and debugging villains in style. Isaac brings the super-powered energy to every project. |
 |---|---|
 
-| <img src="https://github.com/mssa-ccad18/CodeAvengers/blob/main/Assets/GitHubIcon.png" width="150" width="150"> | **Chris** - Bio:<br><br>An spiring software engineer leveraging his leadership, problem-solving, and technical expertise to develop innovative solutions in complex environments. |
+| <img src="https://github.com/mssa-ccad18/CodeAvengers/blob/main/Assets/GitHubIcon.png" width="150" width="150"> | **Chris** - Bio:<br><br>An aspiring software engineer leveraging his leadership, problem-solving, and technical expertise to develop innovative solutions in complex environments. |
 |---|---|
 
 | <img src="https://github.com/mssa-ccad18/CodeAvengers/blob/main/David_obito.png?raw=true" width="150"> | **David** - Bio:<br><br>David Awodi is a computer science student passionate about software development, cloud tech, and transitioning into a tech career. |
